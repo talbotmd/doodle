@@ -1,6 +1,10 @@
-numpy
-Pillow  # provides PIL
-scipy==1.1
-tensorflow == 1.13.2  # installs tensorflow with GPU support, should still work even without GPU
+argparse
 h5py
-
+imageio
+numpy
+glob
+Pillow
+scipy==1.1
+tensorflow == 1.13.2
+os
+matplotlib
