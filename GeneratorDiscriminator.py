@@ -10,10 +10,12 @@ layers_dims_Hp2d = [10, 9, 8, 7, 6, 5, 5, 6, 7, 8, 9, 10]
 layers_dims_Dh = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 layers_dims_Dm = [20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
 
-X = [[1, 3], [2, 6], [3, 9], [4, 12], [5, 15], [6, 18], [7, 21], [8, 24], [9, 27], [10, 30]]
-Y = [[1, 1], [2, 3], [5, 8], [13, 21], [34, 55], [89, 13], [21, 34], [55, 89], [5, 8], [13, 21]]
+A = [[1, 3], [2, 6], [3, 9], [4, 12], [5, 15], [6, 18], [7, 21], [8, 24], [9, 27], [10, 30]]
+B = [[1, 1], [2, 3], [5, 8], [13, 21], [34, 55], [89, 13], [21, 34], [55, 89], [5, 8], [13, 21]]
 
-learning_rate = 1;
+learning_rate = 1
+m = len(A[0])
+k = 10 #Number of interations of dicriminator training before training generator
 #L_dim_H = [10, 9, 8, 7, 6, 5, 5, 6, 7, 8, 9, 10]
 #L_dim_Dh = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 #L_dim_Dm = [20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
@@ -134,14 +136,28 @@ init = tf.global_variables_initializer()
 
 #to create tensorboard graph
 writer = tf.summary.FileWriter('./graphs',tf.get_default_graph())
-with tf.Session() as sess:
-    sess.run(init)
-    #writer = tf.summary.FileWriter('./graphs', sess.graph)
-    Loss_Hp2d, Loss_Dm, Loss_Dh, _, _, _ = sess.run(Loss_Hp2d, feed_dict = {P: X, D_real: Y}), sess.run(Loss_Dm, feed_dict = {P: X, D_real: Y}), sess.run(Loss_Dh, feed_dict = {P: X, D_real: Y}), sess.run(optimizer_Hp2d, feed_dict = {P: X, D_real: Y}), sess.run(optimizer_Dm, feed_dict = {P: X, D_real: Y}), sess.run(optimizer_Dh, feed_dict = {P: X, D_real: Y})
-    print("Loss in Hp2d = "+str(Loss_Hp2d))
-    print("Loss in Dh = "+str(Loss_Dh))
-    print("Loss in Dm = "+str(Loss_Dm))
-    
+
+J_Hp2d = []
+J_Dh = []
+J_Dm = []
+
+for i in range(1,m):
+#i = m
+    with tf.Session() as sess:
+        sess.run(init)
+        #writer = tf.summary.FileWriter('./graphs', sess.graph)
+        Loss_Hp2d, Loss_Dm, Loss_Dh, = sess.run(Loss_Hp2d, feed_dict = {P: A, D_real: B}), sess.run(Loss_Dm, feed_dict = {P: A, D_real: B}), sess.run(Loss_Dh, feed_dict = {P: A, D_real: B})
+        _, _ = sess.run(optimizer_Dm, feed_dict = {P: A, D_real: B}), sess.run(optimizer_Dh, feed_dict = {P: A, D_real: B})
+        if np.mod(i,k) == 0:
+            _ = sess.run(optimizer_Hp2d, feed_dict = {P: A, D_real: B})
+        
+J_Hp2d.append(Loss_Hp2d)
+J_Dh.append(Loss_Dh)
+J_Dm.append(Loss_Dm)
+            
+print("Loss in Hp2d = "+str(Loss_Hp2d))
+print("Loss in Dh = "+str(Loss_Dh))
+print("Loss in Dm = "+str(Loss_Dm))
 sess.close()
 
 
