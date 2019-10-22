@@ -14,7 +14,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 
 def load_dataset():
-    train_dataset = h5py.File('data/sketchy/cat.hdf5', "r")
+    train_dataset = h5py.File('output.hdf5', "r")
     train_set_x_orig = np.array(train_dataset["image_dataset"][:]) # your train set features
     train_set_y_orig = np.array(train_dataset["sketch_dataset"][:]) # your train set labels
     train_set_x_flat = train_set_x_orig.reshape(train_set_x_orig.shape[0],-1).T
@@ -23,14 +23,14 @@ def load_dataset():
 
 A, B = load_dataset()
 
-layers_dims_Hp2d = [A.shape[0], 9, 8, 7, 6, 5, 5, 6, 7, 8, 9, A.shape[0]]
-layers_dims_Dh = [A.shape[0], 9, 8, 7, 6, 5, 4, 3, 2, 1]
-layers_dims_Dm = [A.shape[0]+B.shape[0], 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
+layers_dims_Hp2d = [A.shape[0], 256, 128, 64, 32, 64, 128, 256, A.shape[0]]
+layers_dims_Dh = [A.shape[0], 256, 128, 64, 32, 16, 8, 4, 1]
+layers_dims_Dm = [A.shape[0]+B.shape[0], 256, 128, 64, 32, 16, 8, 4, 1]
 
 learning_rate = 1
-m = 100
-k = 10 #Number of interations of dicriminator training before training generator
-minibatch_size = 5
+m = 2
+k = 5 #Number of interations of dicriminator training before training generator
+minibatch_size = 20
 # Makes sure the minibatch size is not larger than the dataset
 minibatch_size = min(minibatch_size, A.shape[1])
 
@@ -146,9 +146,9 @@ init = tf.global_variables_initializer()
 #to create tensorboard graph
 writer = tf.summary.FileWriter('./graphs',tf.get_default_graph())
 
-J_Hp2d = []
-J_Dh = []
-J_Dm = []
+J_Hp2d = ()
+J_Dh = ()
+J_Dm = ()
 
 saver = tf.train.Saver()
 
@@ -177,21 +177,27 @@ with tf.Session() as sess:
             if np.mod(i*int(A.shape[1]/minibatch_size)+minibatch_iteration,k) == 0:
                 print("Updating generator")
                 _ = sess.run(optimizer_Hp2d, feed_dict = {P: A_minibatch, D_real: B_minibatch})
-
+            #J_Hp2d += (Loss_Hp2d_,)
+            #J_Dh += (Loss_Dh_,)
+            #J_Dm += (Loss_Dm_,)
         if i % 5 == 0:
             save_path = saver.save(sess, "./checkpoints/GeneratorDiscriminator.ckpt")
             print("Saved checkpoint to file: ", save_path)
-        
-J_Hp2d.append(Loss_Hp2d_)
-J_Dh.append(Loss_Dh_)
-J_Dm.append(Loss_Dm_)
             
-print("Loss in Hp2d = "+str(Loss_Hp2d_))
-print("Loss in Dh = "+str(Loss_Dh_))
-print("Loss in Dm = "+str(Loss_Dm_))
+#print("Loss in Hp2d = "+str(Loss_Hp2d_))
+#print("Loss in Dh = "+str(Loss_Dh_))
+#print("Loss in Dm = "+str(Loss_Dm_))
 sess.close()
 
-
+plt.plot(Loss_Hp2d_)
+plt.xlabel("Iterations")
+plt.ylabel("Cost Function of Generator")
+plt.plot(Loss_Dm_)
+plt.xlabel("Iterations")
+plt.ylabel("Cost Function of Match Discriminator")
+plt.plot(Loss_Dh_)
+plt.xlabel("Iterations")
+plt.ylabel("Cost Function of Drawn by Human Discriminiator")
 
 
 
