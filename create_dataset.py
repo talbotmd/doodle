@@ -41,7 +41,6 @@ def main():
             return
         os.remove(args.output_file + ".hdf5")
         
-
     images_data, sketches_data = read_images_and_sketches(args)
     images_data, sketches_data = perform_augmentation(args, images_data, sketches_data)
 
@@ -50,18 +49,21 @@ def main():
     sketch_dataset = output.create_dataset("sketch_dataset", data=sketches_data, dtype='i8')
     print("image data shape: ", image_dataset.shape)
     print("sketch data shape: ", sketch_dataset.shape)
+    print("data: ", images_data[0])
+    print("min: ", np.min(images_data))
+    print("max: ", np.max(images_data))
 
 def read_images_and_sketches(args):
     count = 0
-    output_images = np.zeros((args.num_pairs,256,256,3))
-    output_sketches = np.zeros((args.num_pairs, 256, 256, 3))
+    output_images = np.zeros((args.num_pairs,256,256,3),dtype='i8')
+    output_sketches = np.zeros((args.num_pairs, 256, 256, 3),dtype='i8')
     folder_prefix = args.input_location + "/256x256/"
     invalid_ambiguous = set(line.strip() for line in open("./data/sketchy/info/invalid-ambiguous.txt"))
     invalid_context = set(line.strip() for line in open("./data/sketchy/info/invalid-context.txt"))
     invalid_error = set(line.strip() for line in open("./data/sketchy/info/invalid-error.txt"))
     invalid_pose = set(line.strip() for line in open("./data/sketchy/info/invalid-pose.txt"))
     for file_name_and_loc in glob.glob(folder_prefix + "/photo/tx_000100000000/" + args.object_type + "/*.jpg"):
-        output_images[count] = np.array(imageio.imread(file_name_and_loc))
+        output_images[count] = np.array(imageio.imread(file_name_and_loc),dtype='i8')
         file_name = file_name_and_loc.split('/')[-1][:-4] #This isolates the file name, and drops the file type
         
         #make sure we dont use an invalid sketch
@@ -73,7 +75,7 @@ def read_images_and_sketches(args):
             sketch_name = file_name + "-" + str(sketch_index)
         
         output_sketches[count] = np.array(imageio.imread(folder_prefix + "sketch/tx_000100000000/" + 
-                args.object_type + "/" + sketch_name + ".png"))
+                args.object_type + "/" + sketch_name + ".png"),dtype='i8')
         count += 1
         if count >= args.num_pairs:
             break
