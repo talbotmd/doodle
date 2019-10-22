@@ -21,27 +21,13 @@ def load_dataset():
 
 A, B = load_dataset()
 
-layers_dims_Hp2d = [X.shape[0], 9, 8, 7, 6, 5, 5, 6, 7, 8, 9, X.shape[0]]
-layers_dims_Dh = [X.shape[0], 9, 8, 7, 6, 5, 4, 3, 2, 1]
-layers_dims_Dm = [X.shape[0]+Y.shape[0], 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
+layers_dims_Hp2d = [A.shape[0], 9, 8, 7, 6, 5, 5, 6, 7, 8, 9, A.shape[0]]
+layers_dims_Dh = [A.shape[0], 9, 8, 7, 6, 5, 4, 3, 2, 1]
+layers_dims_Dm = [A.shape[0]+B.shape[0], 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
 
 learning_rate = 1
 m = len(A[0])
 k = 10 #Number of interations of dicriminator training before training generator
-
-def load_dataset():
-    train_dataset = h5py.File('data/sketchy/cat.hdf5', "r")
-    train_set_x_orig = np.array(train_dataset["image_dataset"][:]) # your train set features
-    train_set_y_orig = np.array(train_dataset["sketch_dataset"][:]) # your train set labels
-    train_set_x_flat = train_set_x_orig.reshape(train_set_x_orig.shape[0],-1).T
-    train_set_y_flat = train_set_y_orig.reshape(train_set_y_orig.shape[0],-1).T
-    return train_set_x_flat/255, train_set_y_flat/255
-
-X, Y = load_dataset()
-
-layers_dims_Hp2d = [X.shape[0], 9, 8, 7, 6, 5, 5, 6, 7, 8, 9, X.shape[0]]
-layers_dims_Dh = [X.shape[0], 9, 8, 7, 6, 5, 4, 3, 2, 1]
-layers_dims_Dm = [X.shape[0]+Y.shape[0], 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
 
 def create_placeholders(n_P, n_D):
     P = tf.placeholder(tf.float32,[n_P,None], name='P') #Input Photo
@@ -115,7 +101,7 @@ def Hp2d_loss(A_human_fake, A_match_fake):
 
 #Start Trying out the code
 ops.reset_default_graph() #reset default graph
-P, D_real = create_placeholders(X.shape[0], X.shape[0])
+P, D_real = create_placeholders(A.shape[0], A.shape[0])
 print ("P = " + str(P))
 print ("D_real = " + str(D_real))
 print ("layers_dims_Hp2d = " + str(layers_dims_Hp2d))
@@ -165,18 +151,18 @@ for i in range(1,m):
     with tf.Session() as sess:
         sess.run(init)
         #writer = tf.summary.FileWriter('./graphs', sess.graph)
-        Loss_Hp2d, Loss_Dm, Loss_Dh, = sess.run(Loss_Hp2d, feed_dict = {P: A, D_real: B}), sess.run(Loss_Dm, feed_dict = {P: A, D_real: B}), sess.run(Loss_Dh, feed_dict = {P: A, D_real: B})
+        Loss_Hp2d_, Loss_Dm_, Loss_Dh_, = sess.run(Loss_Hp2d, feed_dict = {P: A, D_real: B}), sess.run(Loss_Dm, feed_dict = {P: A, D_real: B}), sess.run(Loss_Dh, feed_dict = {P: A, D_real: B})
         _, _ = sess.run(optimizer_Dm, feed_dict = {P: A, D_real: B}), sess.run(optimizer_Dh, feed_dict = {P: A, D_real: B})
         if np.mod(i,k) == 0:
             _ = sess.run(optimizer_Hp2d, feed_dict = {P: A, D_real: B})
         
-J_Hp2d.append(Loss_Hp2d)
-J_Dh.append(Loss_Dh)
-J_Dm.append(Loss_Dm)
+J_Hp2d.append(Loss_Hp2d_)
+J_Dh.append(Loss_Dh_)
+J_Dm.append(Loss_Dm_)
             
-print("Loss in Hp2d = "+str(Loss_Hp2d))
-print("Loss in Dh = "+str(Loss_Dh))
-print("Loss in Dm = "+str(Loss_Dm))
+print("Loss in Hp2d = "+str(Loss_Hp2d_))
+print("Loss in Dh = "+str(Loss_Dh_))
+print("Loss in Dm = "+str(Loss_Dm_))
 sess.close()
 
 
