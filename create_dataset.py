@@ -5,6 +5,7 @@ import numpy as np
 import glob
 import os
 import matplotlib.pyplot as plt
+import random
 
 def main():
     parser = argparse.ArgumentParser()
@@ -61,14 +62,20 @@ def read_images_and_sketches(args):
     invalid_error = set(line.strip() for line in open("./data/sketchy/info/invalid-error.txt"))
     invalid_pose = set(line.strip() for line in open("./data/sketchy/info/invalid-pose.txt"))
     sketch_index_start = 1
+    file_list = glob.glob(folder_prefix + "/photo/tx_000100000000/" + args.object_type + "/*.jpg")
+    
+    #So we pick from all object types
+    random.shuffle(file_list)
     while count < args.num_pairs:
-        for file_name_and_loc in glob.glob(folder_prefix + "/photo/tx_000100000000/" + args.object_type + "/*.jpg"):
+        for file_name_and_loc in file_list:
             output_images[count] = np.array(imageio.imread(file_name_and_loc))
             file_name = file_name_and_loc.split('/')[-1][:-4] #This isolates the file name, and drops the file type
             object_type = file_name_and_loc.split('/')[-2]
-            #make sure we dont use an invalid sketch
+
             sketch_index = sketch_index_start
             sketch_name = file_name + "-" + str(sketch_index)
+
+            #make sure we dont use an invalid sketch
             while sketch_name in invalid_ambiguous or sketch_name in invalid_context or \
                     sketch_name in invalid_error or sketch_name in invalid_pose:
                 sketch_index += 1
