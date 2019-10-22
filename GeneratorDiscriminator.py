@@ -11,8 +11,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 # layers_dims_Dm = [20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
 
 
-
-
 def load_dataset():
     train_dataset = h5py.File('data/sketchy/cat.hdf5', "r")
     train_set_x_orig = np.array(train_dataset["image_dataset"][:]) # your train set features
@@ -30,6 +28,20 @@ layers_dims_Dm = [X.shape[0]+Y.shape[0], 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
 learning_rate = 1
 m = len(A[0])
 k = 10 #Number of interations of dicriminator training before training generator
+
+def load_dataset():
+    train_dataset = h5py.File('data/sketchy/cat.hdf5', "r")
+    train_set_x_orig = np.array(train_dataset["image_dataset"][:]) # your train set features
+    train_set_y_orig = np.array(train_dataset["sketch_dataset"][:]) # your train set labels
+    train_set_x_flat = train_set_x_orig.reshape(train_set_x_orig.shape[0],-1).T
+    train_set_y_flat = train_set_y_orig.reshape(train_set_y_orig.shape[0],-1).T
+    return train_set_x_flat/255, train_set_y_flat/255
+
+X, Y = load_dataset()
+
+layers_dims_Hp2d = [X.shape[0], 9, 8, 7, 6, 5, 5, 6, 7, 8, 9, X.shape[0]]
+layers_dims_Dh = [X.shape[0], 9, 8, 7, 6, 5, 4, 3, 2, 1]
+layers_dims_Dm = [X.shape[0]+Y.shape[0], 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
 
 def create_placeholders(n_P, n_D):
     P = tf.placeholder(tf.float32,[n_P,None], name='P') #Input Photo
