@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.python.framework import ops
 import os
+import argparse
+
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 # layers_dims_Hp2d = [10, 9, 8, 7, 6, 5, 5, 6, 7, 8, 9, 10]
@@ -26,7 +28,7 @@ layers_dims_Dh = [A.shape[0], 9, 8, 7, 6, 5, 4, 3, 2, 1]
 layers_dims_Dm = [A.shape[0]+B.shape[0], 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
 
 learning_rate = 1
-m = len(A[0])
+m = 100
 k = 10 #Number of interations of dicriminator training before training generator
 
 def create_placeholders(n_P, n_D):
@@ -98,23 +100,22 @@ def Hp2d_loss(A_human_fake, A_match_fake):
     total_loss = human_loss + match_loss
     return total_loss
 
+# Adds command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--load_checkpoint", required=False, type=bool, default=False, 
+    help="Load a checkpoint?")
+parser.add_argument("--checkpoint_file", required=False, type=str, default="./checkpoints/GeneratorDiscriminator.ckpt", 
+    help="Which checkpoint file?")
+args = parser.parse_args()
 
 #Start Trying out the code
 ops.reset_default_graph() #reset default graph
 P, D_real = create_placeholders(A.shape[0], A.shape[0])
-print ("P = " + str(P))
-print ("D_real = " + str(D_real))
-print ("layers_dims_Hp2d = " + str(layers_dims_Hp2d))
-print ("layers_dims_Dh = " + str(layers_dims_Dh))
-print ("layers_dims_Dm = " + str(layers_dims_Dm))
 
 #Initilize Data Inputs Dictionary
 
 with tf.Session() as sess:
     parameters_Hp2d, parameters_Dh, parameters_Dm = initialize_parameters(layers_dims_Hp2d, layers_dims_Dh, layers_dims_Dm)
-    print("parameters_Hp2d " + str(parameters_Hp2d))
-    print("parameters_Dm " + str(parameters_Dm))
-    print("parameters_Dh " + str(parameters_Dh))
 
 
 D_fake, _, _ = forward_prop(P, parameters_Hp2d, layers_dims_Hp2d, "Hp2d")
@@ -146,15 +147,29 @@ J_Hp2d = []
 J_Dh = []
 J_Dm = []
 
-for i in range(1,m):
-#i = m
-    with tf.Session() as sess:
+saver = tf.train.Saver()
+
+with tf.Session() as sess:
+    if args.load_checkpoint:
+        saver.restore(sess, args.checkpoint_file)
+        print("Session restored from: " + args.checkpoint_file)
+        args.load_checkpoint = False
+    else:
+        print("Starting session from scratch")
         sess.run(init)
+    for i in range(1,m):
+    #i = m
+        print("iteration: ", i)
         #writer = tf.summary.FileWriter('./graphs', sess.graph)
         Loss_Hp2d_, Loss_Dm_, Loss_Dh_, = sess.run(Loss_Hp2d, feed_dict = {P: A, D_real: B}), sess.run(Loss_Dm, feed_dict = {P: A, D_real: B}), sess.run(Loss_Dh, feed_dict = {P: A, D_real: B})
         _, _ = sess.run(optimizer_Dm, feed_dict = {P: A, D_real: B}), sess.run(optimizer_Dh, feed_dict = {P: A, D_real: B})
         if np.mod(i,k) == 0:
+            print("Updating generator")
             _ = sess.run(optimizer_Hp2d, feed_dict = {P: A, D_real: B})
+
+        if i % 5 == 0:
+            save_path = saver.save(sess, "./checkpoints/GeneratorDiscriminator.ckpt")
+            print("Saved checkpoint to file: ", save_path)
         
 J_Hp2d.append(Loss_Hp2d_)
 J_Dh.append(Loss_Dh_)
