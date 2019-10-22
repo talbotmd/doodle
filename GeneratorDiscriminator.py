@@ -30,6 +30,9 @@ layers_dims_Dm = [A.shape[0]+B.shape[0], 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
 learning_rate = 1
 m = 100
 k = 10 #Number of interations of dicriminator training before training generator
+minibatch_size = 5
+# Makes sure the minibatch size is not larger than the dataset
+minibatch_size = min(minibatch_size, A.shape[1])
 
 def create_placeholders(n_P, n_D):
     P = tf.placeholder(tf.float32,[n_P,None], name='P') #Input Photo
@@ -159,13 +162,21 @@ with tf.Session() as sess:
         sess.run(init)
     for i in range(1,m):
     #i = m
-        print("iteration: ", i)
-        #writer = tf.summary.FileWriter('./graphs', sess.graph)
-        Loss_Hp2d_, Loss_Dm_, Loss_Dh_, = sess.run(Loss_Hp2d, feed_dict = {P: A, D_real: B}), sess.run(Loss_Dm, feed_dict = {P: A, D_real: B}), sess.run(Loss_Dh, feed_dict = {P: A, D_real: B})
-        _, _ = sess.run(optimizer_Dm, feed_dict = {P: A, D_real: B}), sess.run(optimizer_Dh, feed_dict = {P: A, D_real: B})
-        if np.mod(i,k) == 0:
-            print("Updating generator")
-            _ = sess.run(optimizer_Hp2d, feed_dict = {P: A, D_real: B})
+        print("epoch: ", i)
+        for minibatch_iteration in range(int(A.shape[1]/minibatch_size)):
+            selection_indices = np.random.choice(A.shape[1], minibatch_size)
+            A_minibatch = A[:,selection_indices]
+            B_minibatch = B[:,selection_indices]
+            print("selection shape: ", A_minibatch.shape)
+            #writer = tf.summary.FileWriter('./graphs', sess.graph)
+            Loss_Hp2d_, Loss_Dm_, Loss_Dh_, = sess.run(Loss_Hp2d, feed_dict = {P: A_minibatch, D_real: B_minibatch}), sess.run(Loss_Dm, feed_dict = {P: A_minibatch, D_real: B_minibatch}), sess.run(Loss_Dh, feed_dict = {P: A_minibatch, D_real: B_minibatch})
+            _, _ = sess.run(optimizer_Dm, feed_dict = {P: A_minibatch, D_real: B_minibatch}), sess.run(optimizer_Dh, feed_dict = {P: A_minibatch, D_real: B_minibatch})
+            
+            # This should update the generator ones for every k updates to the discriminator
+            # It uses the epoch (i) * minibatch updates per epoch (A.shape[1]/minibatch_size) + minibatch number to determine when to update the generator
+            if np.mod(i*int(A.shape[1]/minibatch_size)+minibatch_iteration,k) == 0:
+                print("Updating generator")
+                _ = sess.run(optimizer_Hp2d, feed_dict = {P: A_minibatch, D_real: B_minibatch})
 
         if i % 5 == 0:
             save_path = saver.save(sess, "./checkpoints/GeneratorDiscriminator.ckpt")
