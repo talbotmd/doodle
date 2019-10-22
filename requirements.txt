@@ -2,9 +2,7 @@ argparse
 h5py
 imageio
 numpy
-glob
 Pillow
 scipy==1.1
 tensorflow == 1.13.2
-os
 matplotlib

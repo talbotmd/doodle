@@ -4,21 +4,35 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.python.framework import ops
 import os
+import argparse
+
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
-layers_dims_Hp2d = [10, 9, 8, 7, 6, 5, 5, 6, 7, 8, 9, 10]
-layers_dims_Dh = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-layers_dims_Dm = [20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
+# layers_dims_Hp2d = [10, 9, 8, 7, 6, 5, 5, 6, 7, 8, 9, 10]
+# layers_dims_Dh = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+# layers_dims_Dm = [20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
 
-X = [[1, 3], [2, 6], [3, 9], [4, 12], [5, 15], [6, 18], [7, 21], [8, 24], [9, 27], [10, 30]]
-Y = [[1, 1], [2, 3], [5, 8], [13, 21], [34, 55], [89, 13], [21, 34], [55, 89], [5, 8], [13, 21]]
-#L_dim_H = [10, 9, 8, 7, 6, 5, 5, 6, 7, 8, 9, 10]
-#L_dim_Dh = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-#L_dim_Dm = [20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 1]
 
-#Inputs = {'P': X, 'D_real': Y}
-#print("Inputs: " + str(Inputs))
+def load_dataset():
+    train_dataset = h5py.File('output.hdf5', "r")
+    train_set_x_orig = np.array(train_dataset["image_dataset"][:]) # your train set features
+    train_set_y_orig = np.array(train_dataset["sketch_dataset"][:]) # your train set labels
+    train_set_x_flat = train_set_x_orig.reshape(train_set_x_orig.shape[0],-1).T
+    train_set_y_flat = train_set_y_orig.reshape(train_set_y_orig.shape[0],-1).T
+    return train_set_x_flat/255, train_set_y_flat/255
 
+A, B = load_dataset()
+
+layers_dims_Hp2d = [A.shape[0], 256, 128, 64, 32, 64, 128, 256, A.shape[0]]
+layers_dims_Dh = [A.shape[0], 256, 128, 64, 32, 16, 8, 4, 1]
+layers_dims_Dm = [A.shape[0]+B.shape[0], 256, 128, 64, 32, 16, 8, 4, 1]
+
+learning_rate = 1
+m = 2
+k = 5 #Number of interations of dicriminator training before training generator
+minibatch_size = 20
+# Makes sure the minibatch size is not larger than the dataset
+minibatch_size = min(minibatch_size, A.shape[1])
 
 def create_placeholders(n_P, n_D):
     P = tf.placeholder(tf.float32,[n_P,None], name='P') #Input Photo
@@ -65,7 +79,7 @@ def forward_prop(X, parameters, layers_dims, namestring):
         Z['Z'+namestring+str(l)] = tf.add(tf.matmul(W,A['A'+namestring+str(l-1)]),b)
         A['A'+namestring+str(l)] = tf.nn.sigmoid(Z['Z'+namestring+str(l)])
 	
-    print(str(l))
+    #print(str(l))
     A_out = A['A'+namestring+str(l)]
     return A_out, Z, A
 
@@ -89,23 +103,22 @@ def Hp2d_loss(A_human_fake, A_match_fake):
     total_loss = human_loss + match_loss
     return total_loss
 
+# Adds command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--load_checkpoint", required=False, type=bool, default=False, 
+    help="Load a checkpoint?")
+parser.add_argument("--checkpoint_file", required=False, type=str, default="./checkpoints/GeneratorDiscriminator.ckpt", 
+    help="Which checkpoint file?")
+args = parser.parse_args()
 
 #Start Trying out the code
 ops.reset_default_graph() #reset default graph
-P, D_real = create_placeholders(10, 10)
-print ("P = " + str(P))
-print ("D_real = " + str(D_real))
-print ("layers_dims_Hp2d = " + str(layers_dims_Hp2d))
-print ("layers_dims_Dh = " + str(layers_dims_Dh))
-print ("layers_dims_Dm = " + str(layers_dims_Dm))
+P, D_real = create_placeholders(A.shape[0], A.shape[0])
 
 #Initilize Data Inputs Dictionary
 
 with tf.Session() as sess:
     parameters_Hp2d, parameters_Dh, parameters_Dm = initialize_parameters(layers_dims_Hp2d, layers_dims_Dh, layers_dims_Dm)
-    print("parameters_Hp2d " + str(parameters_Hp2d))
-    print("parameters_Dm " + str(parameters_Dm))
-    print("parameters_Dh " + str(parameters_Dh))
 
 
 D_fake, _, _ = forward_prop(P, parameters_Hp2d, layers_dims_Hp2d, "Hp2d")
@@ -124,21 +137,67 @@ Loss_Hp2d = Hp2d_loss(A_human_fake, A_match_fake)
 Loss_Dm = Dm_loss(A_match_real, A_match_fake)
 Loss_Dh = Hp2d_loss(A_human_fake, A_match_fake)
 
+optimizer_Hp2d = tf.train.AdamOptimizer(learning_rate = learning_rate).minimize(Loss_Hp2d, var_list = parameters_Hp2d)
+optimizer_Dm = tf.train.AdamOptimizer(learning_rate = learning_rate).minimize(Loss_Dm, var_list = parameters_Dm)
+optimizer_Dh = tf.train.AdamOptimizer(learning_rate = learning_rate).minimize(Loss_Dh, var_list = parameters_Dh)
+
 init = tf.global_variables_initializer()
 
 #to create tensorboard graph
 writer = tf.summary.FileWriter('./graphs',tf.get_default_graph())
+
+J_Hp2d = ()
+J_Dh = ()
+J_Dm = ()
+
+saver = tf.train.Saver()
+
 with tf.Session() as sess:
-    sess.run(init)
-    #writer = tf.summary.FileWriter('./graphs', sess.graph)
-    Loss_Hp2d, Loss_Dm, Loss_Dh = sess.run(Loss_Hp2d, feed_dict = {P: X, D_real: Y}), sess.run(Loss_Dm, feed_dict = {P: X, D_real: Y}), sess.run(Loss_Dh, feed_dict = {P: X, D_real: Y})
-    print("Loss in Hp2d = "+str(Loss_Hp2d))
-    print("Loss in Dh = "+str(Loss_Dh))
-    print("Loss in Dm = "+str(Loss_Dm))
-    
+    if args.load_checkpoint:
+        saver.restore(sess, args.checkpoint_file)
+        print("Session restored from: " + args.checkpoint_file)
+        args.load_checkpoint = False
+    else:
+        print("Starting session from scratch")
+        sess.run(init)
+    for i in range(1,m):
+    #i = m
+        print("epoch: ", i)
+        for minibatch_iteration in range(int(A.shape[1]/minibatch_size)):
+            selection_indices = np.random.choice(A.shape[1], minibatch_size)
+            A_minibatch = A[:,selection_indices]
+            B_minibatch = B[:,selection_indices]
+            print("selection shape: ", A_minibatch.shape)
+            #writer = tf.summary.FileWriter('./graphs', sess.graph)
+            Loss_Hp2d_, Loss_Dm_, Loss_Dh_, = sess.run(Loss_Hp2d, feed_dict = {P: A_minibatch, D_real: B_minibatch}), sess.run(Loss_Dm, feed_dict = {P: A_minibatch, D_real: B_minibatch}), sess.run(Loss_Dh, feed_dict = {P: A_minibatch, D_real: B_minibatch})
+            _, _ = sess.run(optimizer_Dm, feed_dict = {P: A_minibatch, D_real: B_minibatch}), sess.run(optimizer_Dh, feed_dict = {P: A_minibatch, D_real: B_minibatch})
+            
+            # This should update the generator ones for every k updates to the discriminator
+            # It uses the epoch (i) * minibatch updates per epoch (A.shape[1]/minibatch_size) + minibatch number to determine when to update the generator
+            if np.mod(i*int(A.shape[1]/minibatch_size)+minibatch_iteration,k) == 0:
+                print("Updating generator")
+                _ = sess.run(optimizer_Hp2d, feed_dict = {P: A_minibatch, D_real: B_minibatch})
+            #J_Hp2d += (Loss_Hp2d_,)
+            #J_Dh += (Loss_Dh_,)
+            #J_Dm += (Loss_Dm_,)
+        if i % 5 == 0:
+            save_path = saver.save(sess, "./checkpoints/GeneratorDiscriminator.ckpt")
+            print("Saved checkpoint to file: ", save_path)
+            
+#print("Loss in Hp2d = "+str(Loss_Hp2d_))
+#print("Loss in Dh = "+str(Loss_Dh_))
+#print("Loss in Dm = "+str(Loss_Dm_))
 sess.close()
 
-
+plt.plot(Loss_Hp2d_)
+plt.xlabel("Iterations")
+plt.ylabel("Cost Function of Generator")
+plt.plot(Loss_Dm_)
+plt.xlabel("Iterations")
+plt.ylabel("Cost Function of Match Discriminator")
+plt.plot(Loss_Dh_)
+plt.xlabel("Iterations")
+plt.ylabel("Cost Function of Drawn by Human Discriminiator")
 
 
 
