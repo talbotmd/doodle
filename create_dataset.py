@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--object_type", required=False, type=str,
-        help="The name of the object to be created (cat, dog, etc)")
+    parser.add_argument("--object_type", required=False, type=str, default="*",
+        help="The name of the object to be created (cat, dog, etc).")
     # parser.add_argument("--only_invalid_pose", required=False, type=bool, default=False,
     #     help="Will create a set of the invalid pose type images")
     # parser.add_argument("--include_ambiguous", required=False, type=bool, 
@@ -60,23 +60,26 @@ def read_images_and_sketches(args):
     invalid_context = set(line.strip() for line in open("./data/sketchy/info/invalid-context.txt"))
     invalid_error = set(line.strip() for line in open("./data/sketchy/info/invalid-error.txt"))
     invalid_pose = set(line.strip() for line in open("./data/sketchy/info/invalid-pose.txt"))
-    for file_name_and_loc in glob.glob(folder_prefix + "/photo/tx_000100000000/" + args.object_type + "/*.jpg"):
-        output_images[count] = np.array(imageio.imread(file_name_and_loc))
-        file_name = file_name_and_loc.split('/')[-1][:-4] #This isolates the file name, and drops the file type
-        
-        #make sure we dont use an invalid sketch
-        sketch_index = 1
-        sketch_name = file_name + "-" + str(sketch_index)
-        while sketch_name in invalid_ambiguous or sketch_name in invalid_context or \
-                sketch_name in invalid_error or sketch_name in invalid_pose:
-            sketch_index += 1
+    sketch_index_start = 1
+    while count < args.num_pairs:
+        for file_name_and_loc in glob.glob(folder_prefix + "/photo/tx_000100000000/" + args.object_type + "/*.jpg"):
+            output_images[count] = np.array(imageio.imread(file_name_and_loc))
+            file_name = file_name_and_loc.split('/')[-1][:-4] #This isolates the file name, and drops the file type
+            object_type = file_name_and_loc.split('/')[-2]
+            #make sure we dont use an invalid sketch
+            sketch_index = sketch_index_start
             sketch_name = file_name + "-" + str(sketch_index)
-        
-        output_sketches[count] = np.array(imageio.imread(folder_prefix + "sketch/tx_000100000000/" + 
-                args.object_type + "/" + sketch_name + ".png"))
-        count += 1
-        if count >= args.num_pairs:
-            break
+            while sketch_name in invalid_ambiguous or sketch_name in invalid_context or \
+                    sketch_name in invalid_error or sketch_name in invalid_pose:
+                sketch_index += 1
+                sketch_name = file_name + "-" + str(sketch_index)
+            
+            output_sketches[count] = np.array(imageio.imread(folder_prefix + "sketch/tx_000100000000/" + 
+                    object_type + "/" + sketch_name + ".png"))
+            count += 1
+            if count >= args.num_pairs:
+                break
+        sketch_index_start += 1
 
     return output_images, output_sketches
 
