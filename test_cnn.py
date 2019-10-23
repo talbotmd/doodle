@@ -63,6 +63,15 @@ def main():
     checkpoint_dir = "./checkpoints"
     checkpoint_prefix = os.path.join(checkpoint_dir, "cat_chpt")
     checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer, generator=generator_model)
+    manager = tf.train.CheckpointManager(checkpoint, checkpoint_dir, max_to_keep=3)
+    checkpoint.restore(manager.latest_checkpoint)
+    if manager.latest_checkpoint:
+        print("Restored from {}".format(manager.latest_checkpoint))
+        output = generator_model(train_x[94:95], training=False)
+        print("shape:",output.shape)
+        plt.imshow(output[0, :, :, :])
+        plt.show()
+        return
 
     for epoch in range(3000):
         print("epoch: ", epoch)
