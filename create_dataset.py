@@ -42,20 +42,14 @@ def main():
             return
         os.remove(args.output_file + ".hdf5")
         
-
     images_data, sketches_data = read_images_and_sketches(args)
-    images_data, sketches_data = perform_augmentation(args, images_data, sketches_data)
+    # images_data, sketches_data = perform_augmentation(args, images_data, sketches_data)
 
-    output = h5py.File(args.output_file + ".hdf5", "a")
-    image_dataset = output.create_dataset("image_dataset", data=images_data,dtype='i8')
-    sketch_dataset = output.create_dataset("sketch_dataset", data=sketches_data, dtype='i8')
-    print("image data shape: ", image_dataset.shape)
-    print("sketch data shape: ", sketch_dataset.shape)
 
 def read_images_and_sketches(args):
     count = 0
-    output_images = np.zeros((args.num_pairs,256,256,3))
-    output_sketches = np.zeros((args.num_pairs, 256, 256, 3))
+    output_images = np.zeros((min(1000,args.num_pairs),256,256,3),dtype='i8')
+    output_sketches = np.zeros((min(1000,args.num_pairs),256, 256, 3),dtype='i8')
     folder_prefix = args.input_location + "/256x256/"
     invalid_ambiguous = set(line.strip() for line in open("./data/sketchy/info/invalid-ambiguous.txt"))
     invalid_context = set(line.strip() for line in open("./data/sketchy/info/invalid-context.txt"))
@@ -64,11 +58,19 @@ def read_images_and_sketches(args):
     sketch_index_start = 1
     file_list = glob.glob(folder_prefix + "/photo/tx_000100000000/" + args.object_type + "/*.jpg")
     
+    output = h5py.File(args.output_file + ".hdf5", "a")
+    image_dataset = output.create_dataset("image_dataset", (1,256,256,3),dtype='i8',compression='gzip', maxshape=(None,None,None,None,))
+    sketch_dataset = output.create_dataset("sketch_dataset", (1,256,256,3), dtype='i8',compression='gzip', maxshape=(None,None,None,None,))
+
+    # Get 1000 images at a time
+    temp_storage_counter = 0
+    index=0
+    end=0
     #So we pick from all object types
     random.shuffle(file_list)
     while count < args.num_pairs:
         for file_name_and_loc in file_list:
-            output_images[count] = np.array(imageio.imread(file_name_and_loc))
+            output_images[temp_storage_counter] = np.array(imageio.imread(file_name_and_loc),dtype='i8')
             file_name = file_name_and_loc.split('/')[-1][:-4] #This isolates the file name, and drops the file type
             object_type = file_name_and_loc.split('/')[-2]
 
@@ -81,18 +83,36 @@ def read_images_and_sketches(args):
                 sketch_index += 1
                 sketch_name = file_name + "-" + str(sketch_index)
             
-            output_sketches[count] = np.array(imageio.imread(folder_prefix + "sketch/tx_000100000000/" + 
-                    object_type + "/" + sketch_name + ".png"))
+            output_sketches[temp_storage_counter] = np.array(imageio.imread(folder_prefix + "sketch/tx_000100000000/" + 
+                    object_type + "/" + sketch_name + ".png"),dtype='i8')
             count += 1
+            temp_storage_counter += 1
+            
+            # Saves 1000 images in the file, so we don't have an array that is too long
+            if temp_storage_counter == 1000 or count == args.num_pairs:
+                end = min(index + 1000, args.num_pairs)
+                image_dataset.resize(end,axis=0)
+                image_dataset[index:end] = output_images
+                sketch_dataset.resize(end,axis=0)
+                sketch_dataset[index:end] = output_sketches
+                index = end
+                print("image data shape: ", image_dataset.shape)
+                print("sketch data shape: ", sketch_dataset.shape)
+                
+                temp_storage_counter = 0
+                output_images = np.zeros((min(1000,args.num_pairs-count),256,256,3),dtype='i8')
+                output_sketches = np.zeros((min(1000,args.num_pairs-count),256, 256, 3),dtype='i8')
+
+
             if count >= args.num_pairs:
                 break
+            if count % 100 == 0:
+                print(count)
         sketch_index_start += 1
 
-    return output_images, output_sketches
+    return image_dataset, sketch_dataset
 
 def perform_augmentation(args, images_data, sketches_data):
-    images_copy = images_data
-    sketches_copy = sketches_data
     if args.flipping_augment:
         images_copy = np.append(images_copy,np.flip(images_copy,axis=2),axis=0)
         sketches_copy = np.append(sketches_copy, np.flip(sketches_copy,axis=2),axis=0)
