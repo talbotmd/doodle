@@ -49,7 +49,7 @@ def main():
 def read_images_and_sketches(args):
     count = 0
     output_images = np.zeros((min(1000,args.num_pairs),256,256,3),dtype='i8')
-    output_sketches = np.zeros((min(1000,args.num_pairs),256, 256, 3),dtype='i8')
+    output_sketches = np.zeros((min(1000,args.num_pairs),256,256,3),dtype='i8')
     folder_prefix = args.input_location + "/256x256/"
     invalid_ambiguous = set(line.strip() for line in open("./data/sketchy/info/invalid-ambiguous.txt"))
     invalid_context = set(line.strip() for line in open("./data/sketchy/info/invalid-context.txt"))
@@ -107,7 +107,7 @@ def read_images_and_sketches(args):
             if count >= args.num_pairs:
                 break
             if count % 100 == 0:
-                print(count)
+                print('Read ' + count + ' images')
         sketch_index_start += 1
 
     return image_dataset, sketch_dataset
