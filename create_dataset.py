@@ -29,6 +29,8 @@ def main():
         help="relative path to the Sketchy Dataset 256x256 folder")
     parser.add_argument("--output_file", required=False, type=str, default="output", 
         help="The name of the output folder")
+    parser.add_argument("--create_test_set", required=False, type=bool, default=False, 
+        help="Creates a test set")
 
     args = parser.parse_args()
 
@@ -65,7 +67,8 @@ def read_images_and_sketches(args):
     # Get 1000 images at a time
     temp_storage_counter = 0
     index=0
-    end=0
+    end=min(1000, args.num_pairs)
+
     #So we pick from all object types
     random.shuffle(file_list)
     while count < args.num_pairs:
@@ -90,12 +93,26 @@ def read_images_and_sketches(args):
             
             # Saves 1000 images in the file, so we don't have an array that is too long
             if temp_storage_counter == 1000 or count == args.num_pairs:
-                end = min(index + 1000, args.num_pairs)
+                # end = min(index + 1000, args.num_pairs)
                 image_dataset.resize(end,axis=0)
                 image_dataset[index:end] = output_images
                 sketch_dataset.resize(end,axis=0)
                 sketch_dataset[index:end] = output_sketches
+                
+
+                if args.flipping_augment:
+                    diff = end - index
+                    index = end
+                    end += diff
+                    output_images = np.flip(output_images,axis=2)
+                    output_sketches = np.flip(output_sketches,axis=2)
+                    image_dataset.resize(end,axis=0)
+                    image_dataset[index:end] = output_images
+                    sketch_dataset.resize(end,axis=0)
+                    sketch_dataset[index:end] = output_sketches
+
                 index = end
+                end += min(1000, args.num_pairs - count)
                 print("image data shape: ", image_dataset.shape)
                 print("sketch data shape: ", sketch_dataset.shape)
                 
@@ -107,8 +124,38 @@ def read_images_and_sketches(args):
             if count >= args.num_pairs:
                 break
             if count % 100 == 0:
-                print('Read ' + count + ' images')
+                print('Read ' + str(count) + ' images')
         sketch_index_start += 1
+
+    # Creates 1000 test images
+    if args.create_test_set:
+        output_images = np.zeros((min(1000,args.num_pairs),256,256,3),dtype='i8')
+        output_sketches = np.zeros((min(1000,args.num_pairs),256,256,3),dtype='i8')
+        test_images = output.create_dataset("test_images", (1000,256,256,3),dtype='i8',compression='gzip', maxshape=(None,None,None,None,))
+        test_sketches = output.create_dataset("test_sketches", (1000,256,256,3), dtype='i8',compression='gzip', maxshape=(None,None,None,None,))
+        for i in range(1000):
+            image_index = i + count % len(file_list)
+            file_name_and_loc = file_list[image_index]
+
+            output_images[i] = np.array(imageio.imread(file_name_and_loc),dtype='i8')
+            file_name = file_name_and_loc.split('/')[-1][:-4] #This isolates the file name, and drops the file type
+            object_type = file_name_and_loc.split('/')[-2]
+
+            sketch_index = sketch_index_start
+            sketch_name = file_name + "-" + str(sketch_index)
+
+            #make sure we dont use an invalid sketch
+            while sketch_name in invalid_ambiguous or sketch_name in invalid_context or \
+                    sketch_name in invalid_error or sketch_name in invalid_pose:
+                sketch_index += 1
+                sketch_name = file_name + "-" + str(sketch_index)
+            
+            output_sketches[i] = np.array(imageio.imread(folder_prefix + "sketch/tx_000100000000/" + 
+                    object_type + "/" + sketch_name + ".png"),dtype='i8')
+            
+        # Write to the test set
+        test_images[0:1000] = output_images
+        test_sketches[0:1000] = output_sketches
 
     return image_dataset, sketch_dataset
 
