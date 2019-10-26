@@ -83,13 +83,13 @@ def discriminator2_cost(gen_output,human_output):
 
 def load_dataset():
     train_dataset = h5py.File('output.hdf5', "r")
-    train_set_x_orig = np.array(train_dataset["image_dataset"][:],dtype='float32') # your train set features
-    train_set_y_orig = np.array(train_dataset["sketch_dataset"][:],dtype='float32') # your train set labels
+    train_set_x_orig = np.array(train_dataset["image_dataset"][0:5000,:],dtype='float32') # your train set features
+    train_set_y_orig = np.array(train_dataset["sketch_dataset"][0:5000,:],dtype='float32') # your train set labels
     return train_set_x_orig/255, train_set_y_orig/255
 
 def main():
     noise = tf.random.normal([1,256,256,3])
-    batch_size = 5
+    batch_size = 20
     train_x, train_y = load_dataset()
     generator_model = Generator()
     disc1_model = Discriminator1()
@@ -165,23 +165,23 @@ def main():
         output = generator_model(train_x[train_x.shape[0]-1:train_x.shape[0]], training=False)
         plt.imshow(output[0, :, :, :])
         plt.savefig("test-" + str(epoch) + ".png")
-        plt.cfg()
-	output = generator_model(train_x[0:1], training=False)
+        plt.clf()
+        output = generator_model(train_x[0:1], training=False)
         plt.imshow(output[0, :, :, :])
         plt.savefig("train-" + str(epoch) + ".png")
-	plt.cfg()
+        plt.clf()
         plt.plot(gen_losses)
         plt.savefig("gen_losses.png")
-        plt.cfg()
-	plt.plot(disc_losses)
+        plt.clf()
+        plt.plot(disc_losses)
         plt.savefig("disc_losses.png")
-        plt.cfg()
-	plt.plot(disc_gen_losses)
+        plt.clf()
+        plt.plot(disc_gen_losses)
         plt.savefig("disc_gen_losses.png")
-        plt.cfg()
-	plt.plot(disc_human_losses)
+        plt.clf()
+        plt.plot(disc_human_losses)
         plt.savefig("disc_human_losses.png")
-        plt.cfg()
+        plt.clf()
 	    # plt.imshow(output[0, :, :, :])
             # plt.show()
         if epoch % 2 == 0:
