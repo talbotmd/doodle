@@ -45,39 +45,11 @@ def main():
     images_data, sketches_data = read_images_and_sketches(args)
     # images_data, sketches_data = perform_augmentation(args, images_data, sketches_data)
 
-<<<<<<< HEAD
-    output = h5py.File(args.output_file + ".hdf5", "a")
-    index = 0
-    end = min(1000,images_data.shape[0])
-    image_dataset = output.create_dataset("image_dataset", data=images_data[index:end],dtype='i8',compression='gzip', maxshape=(None,None,None,None,))
-    sketch_dataset = output.create_dataset("sketch_dataset", data=sketches_data[index:end], dtype='i8',compression='gzip', maxshape=(None,None,None,None,))
-    index = end
-    print("here")
-    while index < images_data.shape[0]:
-        end = min(index + 1000, images_data.shape[0])
-        image_dataset.resize(end,axis=0)
-        image_dataset[index:end] = images_data[index:end]
-        sketch_dataset.resize(end,axis=0)
-        sketch_dataset[index:end] = sketches_data[index:end]
-        index = end
-
-        print("image data shape: ", image_dataset.shape)
-        print("sketch data shape: ", sketch_dataset.shape)
-    print("data: ", images_data[0])
-    print("min: ", np.min(images_data))
-    print("max: ", np.max(images_data))
-
-def read_images_and_sketches(args):
-    count = 0
-    output_images = np.zeros((args.num_pairs,256,256,3),dtype='i8')
-    output_sketches = np.zeros((args.num_pairs, 256, 256, 3),dtype='i8')
-=======
 
 def read_images_and_sketches(args):
     count = 0
     output_images = np.zeros((min(1000,args.num_pairs),256,256,3),dtype='i8')
     output_sketches = np.zeros((min(1000,args.num_pairs),256,256,3),dtype='i8')
->>>>>>> master
     folder_prefix = args.input_location + "/256x256/"
     invalid_ambiguous = set(line.strip() for line in open("./data/sketchy/info/invalid-ambiguous.txt"))
     invalid_context = set(line.strip() for line in open("./data/sketchy/info/invalid-context.txt"))
@@ -98,11 +70,7 @@ def read_images_and_sketches(args):
     random.shuffle(file_list)
     while count < args.num_pairs:
         for file_name_and_loc in file_list:
-<<<<<<< HEAD
-            output_images[count] = np.array(imageio.imread(file_name_and_loc),dtype='i8')
-=======
             output_images[temp_storage_counter] = np.array(imageio.imread(file_name_and_loc),dtype='i8')
->>>>>>> master
             file_name = file_name_and_loc.split('/')[-1][:-4] #This isolates the file name, and drops the file type
             object_type = file_name_and_loc.split('/')[-2]
 
@@ -115,11 +83,7 @@ def read_images_and_sketches(args):
                 sketch_index += 1
                 sketch_name = file_name + "-" + str(sketch_index)
             
-<<<<<<< HEAD
-            output_sketches[count] = np.array(imageio.imread(folder_prefix + "sketch/tx_000100000000/" + 
-=======
             output_sketches[temp_storage_counter] = np.array(imageio.imread(folder_prefix + "sketch/tx_000100000000/" + 
->>>>>>> master
                     object_type + "/" + sketch_name + ".png"),dtype='i8')
             count += 1
             temp_storage_counter += 1
@@ -143,11 +107,7 @@ def read_images_and_sketches(args):
             if count >= args.num_pairs:
                 break
             if count % 100 == 0:
-<<<<<<< HEAD
-                print(count)
-=======
                 print('Read ' + count + ' images')
->>>>>>> master
         sketch_index_start += 1
 
     return image_dataset, sketch_dataset
