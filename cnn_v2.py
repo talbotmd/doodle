@@ -93,7 +93,7 @@ def discriminator2_cost(gen_output,human_output):
 
 def load_dataset(num=4000):
     train_dataset = h5py.File('output.hdf5', "r")
-    start = random.randing(0:96000)
+    start = random.randint(0,96000)
     train_set_x_orig = np.array(train_dataset["image_dataset"][start:start+num],dtype='float32') # your train set features
     train_set_y_orig = np.array(train_dataset["sketch_dataset"][start:start+num],dtype='float32') # your train set labels
     return train_set_x_orig/255, train_set_y_orig/255
