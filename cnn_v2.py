@@ -98,7 +98,7 @@ def load_dataset():
 
 def main():
     noise = tf.random.normal([1,256,256,3])
-    batch_size = 20
+    batch_size = 5
     train_x, train_y = load_dataset()
     generator_model = Generator()
     disc1_model = Discriminator1()
@@ -150,12 +150,12 @@ def main():
                 disc1_cost, disc1_gen_cost, disc1_human_cost = discriminator1_cost(disc1_gen_output, disc1_human_output)
 
                 #Discriminator 2: Matching loss
-                disc2_gen_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],generated_images],4), training=True)
-                disc2_human_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+5,train_x.shape[0]-1)]],4), training=True)
+                disc2_gen_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],generated_images],3), training=True)
+                disc2_human_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+5,train_x.shape[0]-1)]],3), training=True)
                 disc2_cost, disc2_gen_cost, disc2_human_cost = discriminator2_cost(disc2_gen_output, disc2_human_output)
                 
                 #Generator loss
-                gen_cost = generator_cost(disc1_gen_output,train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+batch_size,train_x.shape[0]-1)])
+                gen_cost = generator_cost(disc1_gen_output,disc2_gen_output,train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+batch_size,train_x.shape[0]-1)])
                 
                 #Tracking loss
                 average_human_disc1_cost += disc1_human_cost
