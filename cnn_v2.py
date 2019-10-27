@@ -93,15 +93,15 @@ def discriminator2_cost(gen_output,human_output):
 
 def load_dataset(num=4000):
     train_dataset = h5py.File('output.hdf5', "r")
-    start = random.randing(0:96000)
+    start = random.randint(0,96000)
     train_set_x_orig = np.array(train_dataset["image_dataset"][start:start+num],dtype='float32') # your train set features
     train_set_y_orig = np.array(train_dataset["sketch_dataset"][start:start+num],dtype='float32') # your train set labels
     return train_set_x_orig/255, train_set_y_orig/255
 
 def main():
     noise = tf.random.normal([1,256,256,3])
-    batch_size = 50
-    text_x, test_y = load_dataset()
+    batch_size = 15
+    test_x, test_y = load_dataset()
     generator_model = Generator()
     disc1_model = Discriminator1()
     disc2_model = Discriminator2()
@@ -154,7 +154,7 @@ def main():
 
                 #Discriminator 2: Matching loss
                 disc2_gen_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],generated_images],3), training=True)
-                disc2_human_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+5,train_x.shape[0]-1)]],3), training=True)
+                disc2_human_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+batch_size,train_x.shape[0]-1)]],3), training=True)
                 disc2_cost, disc2_gen_cost, disc2_human_cost = discriminator2_cost(disc2_gen_output, disc2_human_output)
                 
                 #Generator loss
