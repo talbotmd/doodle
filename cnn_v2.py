@@ -108,8 +108,8 @@ def load_dataset(num=4000):
 
 def main():
     noise = tf.random.normal([1,256,256,3])
-    batch_size = 50
-    text_x, test_y = load_dataset()
+    batch_size = 15
+    test_x, test_y = load_dataset()
     generator_model = Generator()
     disc1_model = Discriminator1()
     disc2_model = Discriminator2()
@@ -162,7 +162,7 @@ def main():
 
                 #Discriminator 2: Matching loss
                 disc2_gen_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],generated_images],3), training=True)
-                disc2_human_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+5,train_x.shape[0]-1)]],3), training=True)
+                disc2_human_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+batch_size,train_x.shape[0]-1)]],3), training=True)
                 disc2_cost, disc2_gen_cost, disc2_human_cost = discriminator2_cost(disc2_gen_output, disc2_human_output)
                 
                 #Generator loss
