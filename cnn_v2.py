@@ -3,6 +3,7 @@ import h5py
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import os
+import random
 
 def encoder_layer(num_filters, apply_dropout=False, dropout_prob=0.5):
     initializer = tf.random_normal_initializer(0., 0.02)
@@ -90,16 +91,17 @@ def discriminator2_cost(gen_output,human_output):
     human_loss = loss_fn(tf.ones_like(human_output),human_output)
     return gen_loss + human_loss, gen_loss, human_loss
 
-def load_dataset():
+def load_dataset(num=4000):
     train_dataset = h5py.File('output.hdf5', "r")
-    train_set_x_orig = np.array(train_dataset["image_dataset"][:],dtype='float32') # your train set features
-    train_set_y_orig = np.array(train_dataset["sketch_dataset"][:],dtype='float32') # your train set labels
+    start = random.randing(0:96000)
+    train_set_x_orig = np.array(train_dataset["image_dataset"][start:start+num],dtype='float32') # your train set features
+    train_set_y_orig = np.array(train_dataset["sketch_dataset"][start:start+num],dtype='float32') # your train set labels
     return train_set_x_orig/255, train_set_y_orig/255
 
 def main():
     noise = tf.random.normal([1,256,256,3])
-    batch_size = 5
-    train_x, train_y = load_dataset()
+    batch_size = 50
+    text_x, test_y = load_dataset()
     generator_model = Generator()
     disc1_model = Discriminator1()
     disc2_model = Discriminator2()
@@ -114,7 +116,7 @@ def main():
     checkpoint.restore(manager.latest_checkpoint)
     if manager.latest_checkpoint:
         print("Restored from {}".format(manager.latest_checkpoint))
-        output = generator_model(train_x[94:95], training=False)
+        output = generator_model(test_x[94:95], training=False)
         print("shape:",output.shape)
         plt.imshow(output[0, :, :, :])
         plt.show()
@@ -129,6 +131,7 @@ def main():
     disc2_gen_losses = []
 
     for epoch in range(3000):
+        train_x, train_y = load_dataset()
         print("epoch: ", epoch)
         average_disc1_cost = 0
         average_human_disc1_cost = 0
@@ -197,11 +200,11 @@ def main():
         disc2_gen_losses.append(np.mean(average_gen_disc2_cost)/counter)
 
         # Plot loss and save train/test images on every iteration
-        output = generator_model(train_x[train_x.shape[0]-1:train_x.shape[0]], training=False)
+        output = generator_model(test_x[test_x.shape[0]-1:test_x.shape[0]], training=False)
         plt.imshow(output[0, :, :, :])
         plt.savefig("test-" + str(epoch) + ".png")
         plt.clf()
-        output = generator_model(train_x[0:1], training=False)
+        output = generator_model(test_x[0:1], training=False)
         plt.imshow(output[0, :, :, :])
         plt.savefig("train-" + str(epoch) + ".png")
         plt.clf()
@@ -235,7 +238,7 @@ def main():
 
 
 
-    output = generator_model(train_x[0:1], training=False)
+    output = generator_model(test_x[0:1], training=False)
     
     print("shape:",output.shape)
     plt.imshow(output[0, :, :, :])

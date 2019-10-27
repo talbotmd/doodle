@@ -4,5 +4,5 @@ imageio
 numpy
 Pillow
 scipy==1.1
-tensorflow == 1.13.2
+tensorflow-gpu
 matplotlib
