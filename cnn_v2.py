@@ -5,21 +5,23 @@ import tensorflow as tf
 import os
 import random
 
-def encoder_layer(num_filters, apply_dropout=False, dropout_prob=0.5):
+def encoder_layer(num_filters, apply_batchnorm=True,apply_dropout=False, dropout_prob=0.5):
     initializer = tf.random_normal_initializer(0., 0.02)
     model = tf.keras.Sequential()
     model.add(tf.keras.layers.Conv2D(num_filters,4,strides=2,padding='same',kernel_initializer=initializer,use_bias=False))
-    model.add(tf.keras.layers.BatchNormalization())
+    if apply_batchnorm:
+        model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.LeakyReLU())
     if apply_dropout:
         model.add(tf.keras.layers.Dropout(dropout_prob))
     return model
 
-def decoder_layer(num_filters, apply_dropout=False, dropout_prob=0.5):
+def decoder_layer(num_filters, apply_batchnorm=True,apply_dropout=False, dropout_prob=0.5):
     initializer = tf.random_normal_initializer(0., 0.02)
     model = tf.keras.Sequential()
     model.add(tf.keras.layers.Conv2DTranspose(num_filters,4,strides=2,padding='same',kernel_initializer=initializer,use_bias=False))
-    model.add(tf.keras.layers.BatchNormalization())
+    if apply_batchnorm:
+        model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.LeakyReLU())
     if apply_dropout:
         model.add(tf.keras.layers.Dropout(dropout_prob))
@@ -47,7 +49,10 @@ def Generator():
 def Discriminator1():
     inputs = tf.keras.layers.Input(shape=[256,256,3])
     outputs = inputs
-    for i in range(7):
+    for i in range(2):
+        layer = encoder_layer(256, apply_batchnorm=False, apply_dropout=True, dropout_prob=0.2)
+        outputs = layer(outputs)
+    for i in range(5):
         layer = encoder_layer(256, apply_dropout=True, dropout_prob=0.2)
         outputs = layer(outputs)
     layer = tf.keras.layers.Conv2D(1,4,strides=2,padding='same',kernel_initializer=tf.random_normal_initializer(0., 0.02),
@@ -57,7 +62,10 @@ def Discriminator1():
 def Discriminator2():
     inputs = tf.keras.layers.Input(shape=[256,256,6])
     outputs = inputs
-    for i in range(7):
+    for i in range(2):
+        layer = encoder_layer(256, apply_batchnorm=False, apply_dropout=True, dropout_prob=0.2)
+        outputs = layer(outputs)
+    for i in range(5):
         layer = encoder_layer(256, apply_dropout=True, dropout_prob=0.2)
         outputs = layer(outputs)
     layer = tf.keras.layers.Conv2D(1,4,strides=2,padding='same',kernel_initializer=tf.random_normal_initializer(0., 0.02),
