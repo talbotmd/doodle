@@ -57,6 +57,7 @@ def Discriminator1():
         outputs = layer(outputs)
     layer = tf.keras.layers.Conv2D(1,4,strides=2,padding='same',kernel_initializer=tf.random_normal_initializer(0., 0.02),
         activation='sigmoid')
+    outputs = layer(outputs)
     return tf.keras.Model(inputs=inputs, outputs=outputs)
     
 def Discriminator2():
@@ -70,6 +71,7 @@ def Discriminator2():
         outputs = layer(outputs)
     layer = tf.keras.layers.Conv2D(1,4,strides=2,padding='same',kernel_initializer=tf.random_normal_initializer(0., 0.02),
         activation='sigmoid')
+    outputs = layer(outputs)
     return tf.keras.Model(inputs=inputs, outputs=outputs)
 
 # def Generator():
