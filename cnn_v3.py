@@ -130,18 +130,22 @@ def main():
     disc1_optimizer = tf.keras.optimizers.Adam(0.0005, beta_1=0.5)
     disc2_optimizer = tf.keras.optimizers.Adam(0.0005, beta_1=0.5)
 
-    checkpoint_dir = "./checkpoints_v2"
-    checkpoint_prefix = os.path.join(checkpoint_dir, "cnn_v2")
+    checkpoint_dir = "./checkpoints_v3"
+    checkpoint_prefix = os.path.join(checkpoint_dir, "cnn_v3")
     checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer, generator=generator_model, discriminator_optimizer=disc1_optimizer,discriminator=disc1_model, disc2_optimizer=disc2_optimizer, disc2=disc2_model)
     manager = tf.train.CheckpointManager(checkpoint, checkpoint_dir, max_to_keep=3)
     checkpoint.restore(manager.latest_checkpoint)
     if manager.latest_checkpoint:
-        print("Restored from {}".format(manager.latest_checkpoint))
-        output = generator_model(test_x[94:95], training=False)
-        print("shape:",output.shape)
-        plt.imshow(output[0, :, :, :])
-        plt.show()
-        # return
+        for i in range(2000):
+            image_x, _ = load_dataset(num=1, start=i)
+            print("Restored from {}".format(manager.latest_checkpoint))
+            output = generator_model(image_x[0:1], training=False)
+            print("shape:",output.shape)
+            plt.imshow(image_x[0, :, :, :])
+            plt.show()
+            plt.imshow(output[0, :, :, :])
+            plt.show()
+        return
 
     gen_losses = []
     disc1_losses = []
