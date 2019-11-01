@@ -36,7 +36,7 @@ def Generator():
     save_1 = outputs
     layer = encoder_layer(128, apply_dropout=True, dropout_prob=0.1)
     outputs = layer(outputs)# 64
-    save_2 = layer(outputs)
+    save_2 = outputs
     layer = encoder_layer(256, apply_dropout=True, dropout_prob=0.1)
     outputs = layer(outputs) # 32
     save_3 = outputs
@@ -50,17 +50,17 @@ def Generator():
     # for i in range(2):
     layer = decoder_layer(256, apply_dropout=True, dropout_prob=0.5)
     outputs = layer(outputs) # 16
-    outputs = tf.keras.Concatenate([outputs,save_4])
+    outputs = tf.keras.layers.Concatenate()([outputs,save_4])
     layer = decoder_layer(256, apply_dropout=True, dropout_prob=0.5)
     outputs = layer(outputs) # 32
-    outputs = tf.keras.Concatenate([outputs,save_3])
+    outputs = tf.keras.layers.Concatenate()([outputs,save_3])
     # for i in range(2):
     layer = decoder_layer(256, apply_dropout=False)
     outputs = layer(outputs) # 64
-    outputs = tf.keras.Concatenate([outputs,save_2])
+    outputs = tf.keras.layers.Concatenate()([outputs,save_2])
     layer = decoder_layer(256, apply_dropout=False)
     outputs = layer(outputs) # 128
-    outputs = tf.keras.Concatenate([outputs,save_1])
+    outputs = tf.keras.layers.Concatenate()([outputs,save_1])
     # layer = decoder_layer(3)
     layer = tf.keras.layers.Conv2DTranspose(3,4,strides=2,padding='same',kernel_initializer=tf.random_normal_initializer(0., 0.02),
             activation='sigmoid')
@@ -259,11 +259,11 @@ def main():
         # Plot loss and save train/test images on every iteration
         output = generator_model(test_x[test_x.shape[0]-1:test_x.shape[0]], training=False)
         plt.imshow(output[0, :, :, :])
-        plt.savefig("test-" + len(gen_losses) + ".png")
+        plt.savefig("test-" + str(len(gen_losses)) + ".png")
         plt.clf()
         output = generator_model(test_x[0:1], training=False)
         plt.imshow(output[0, :, :, :])
-        plt.savefig("train-" + len(gen_losses) + ".png")
+        plt.savefig("train-" + str(len(gen_losses)) + ".png")
         plt.clf()
         plt.plot(gen_losses)
         plt.savefig("gen_losses.png")
