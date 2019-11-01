@@ -114,39 +114,23 @@ def discriminator2_cost(gen_output,human_output):
 def load_dataset(num=4000, start=-1):
     train_dataset = h5py.File('output.hdf5', "r")
     if start < 0:
-        start = random.randint(0,3000)
+        start = random.randint(0,9000)
     train_set_x_orig = np.array(train_dataset["image_dataset"][start:start+num],dtype='float32') # your train set features
     train_set_y_orig = np.array(train_dataset["sketch_dataset"][start:start+num],dtype='float32') # your train set labels
     return train_set_x_orig/255, train_set_y_orig/255
 
 def main():
     noise = tf.random.normal([1,256,256,3])
-    batch_size = 5
-    test_x, test_y = load_dataset(num=1000, start=0)
+    batch_size = 3
+    test_x, test_y = load_dataset(num=100, start=0)
     generator_model = Generator()
     disc1_model = Discriminator1()
     disc2_model = Discriminator2()
-    generator_optimizer = tf.keras.optimizers.Adam(0.0005, beta_1=0.5)
-    disc1_optimizer = tf.keras.optimizers.Adam(0.0005, beta_1=0.5)
-    disc2_optimizer = tf.keras.optimizers.Adam(0.0005, beta_1=0.5)
+    generator_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.3)
+    disc1_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.3)
+    disc2_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.3)
 
-    checkpoint_dir = "./checkpoints_v3"
-    checkpoint_prefix = os.path.join(checkpoint_dir, "cnn_v3")
-    checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer, generator=generator_model, discriminator_optimizer=disc1_optimizer,discriminator=disc1_model, disc2_optimizer=disc2_optimizer, disc2=disc2_model)
-    manager = tf.train.CheckpointManager(checkpoint, checkpoint_dir, max_to_keep=3)
-    checkpoint.restore(manager.latest_checkpoint)
-    if manager.latest_checkpoint:
-        for i in range(2000):
-            image_x, _ = load_dataset(num=1, start=i)
-            print("Restored from {}".format(manager.latest_checkpoint))
-            output = generator_model(image_x[0:1], training=False)
-            print("shape:",output.shape)
-            plt.imshow(image_x[0, :, :, :])
-            plt.show()
-            plt.imshow(output[0, :, :, :])
-            plt.show()
-        return
-
+    # Keeps track of the losses for plotting
     gen_losses = []
     disc1_losses = []
     disc1_human_losses = []
@@ -155,8 +139,37 @@ def main():
     disc2_human_losses = []
     disc2_gen_losses = []
 
+    checkpoint_dir = "./checkpoints_v3"
+    checkpoint_prefix = os.path.join(checkpoint_dir, "cnn_v3")
+    checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer, generator=generator_model, discriminator_optimizer=disc1_optimizer,discriminator=disc1_model, disc2_optimizer=disc2_optimizer, disc2=disc2_model)
+    manager = tf.train.CheckpointManager(checkpoint, checkpoint_dir, max_to_keep=3)
+    print("checkpoints: ", manager.checkpoints)
+    if manager.latest_checkpoint:
+        checkpoint.restore(manager.latest_checkpoint)
+        # for i in range(2000):
+        #     image_x, _ = load_dataset(num=1, start=i)
+        #     print("Restored from {}".format(manager.latest_checkpoint))
+        #     output = generator_model(image_x[0:1], training=False)
+        #     print("shape:",output.shape)
+        #     plt.imshow(image_x[0, :, :, :])
+        #     plt.show()
+        #     plt.imshow(output[0, :, :, :])
+        #     plt.show()
+        # return
+        all_losses = np.loadtxt("losses_data")
+        gen_losses = all_losses[0].tolist()
+        disc1_losses = all_losses[1].tolist()
+        disc1_human_losses = all_losses[2].tolist()
+        disc1_gen_losses = all_losses[3].tolist()
+        disc2_losses = all_losses[4].tolist()
+        disc2_human_losses = all_losses[5].tolist()
+        disc2_gen_losses = all_losses[6].tolist()
+
+
+    
+
     for epoch in range(3000):
-        train_x, train_y = load_dataset(num=1000)
+        train_x, train_y = load_dataset(num=500)
         print("epoch: ", epoch)
         average_disc1_cost = 0
         average_human_disc1_cost = 0
@@ -224,14 +237,16 @@ def main():
         disc2_human_losses.append(np.mean(average_human_disc2_cost)/counter)
         disc2_gen_losses.append(np.mean(average_gen_disc2_cost)/counter)
 
+        np.savetxt('losses_data',np.array([gen_losses,disc1_losses,disc1_human_losses,disc1_gen_losses,disc2_losses,disc2_human_losses,disc2_gen_losses]))
+
         # Plot loss and save train/test images on every iteration
         output = generator_model(test_x[test_x.shape[0]-1:test_x.shape[0]], training=False)
         plt.imshow(output[0, :, :, :])
-        plt.savefig("test-" + str(epoch) + ".png")
+        plt.savefig("test-" + len(gen_losses) + ".png")
         plt.clf()
         output = generator_model(test_x[0:1], training=False)
         plt.imshow(output[0, :, :, :])
-        plt.savefig("train-" + str(epoch) + ".png")
+        plt.savefig("train-" + len(gen_losses) + ".png")
         plt.clf()
         plt.plot(gen_losses)
         plt.savefig("gen_losses.png")
