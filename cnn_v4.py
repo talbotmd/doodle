@@ -163,24 +163,24 @@ def main():
     print("checkpoints: ", manager.checkpoints)
     if manager.latest_checkpoint:
         checkpoint.restore(manager.latest_checkpoint)
-        # for i in range(2000):
-        #     image_x, _ = load_dataset(num=1, start=i)
-        #     print("Restored from {}".format(manager.latest_checkpoint))
-        #     output = generator_model(image_x[0:1], training=False)
-        #     print("shape:",output.shape)
-        #     plt.imshow(image_x[0, :, :, :])
-        #     plt.show()
-        #     plt.imshow(output[0, :, :, :])
-        #     plt.show()
-        # return
-        all_losses = np.loadtxt("losses_data")
-        gen_losses = all_losses[0].tolist()
-        disc1_losses = all_losses[1].tolist()
-        disc1_human_losses = all_losses[2].tolist()
-        disc1_gen_losses = all_losses[3].tolist()
-        disc2_losses = all_losses[4].tolist()
-        disc2_human_losses = all_losses[5].tolist()
-        disc2_gen_losses = all_losses[6].tolist()
+        for i in range(20):
+            # image_x, _ = load_dataset(num=1, start=i)
+            print("Restored from {}".format(manager.latest_checkpoint))
+            output = generator_model(test_x[i:i+1], training=False)
+            print("shape:",output.shape)
+            plt.imshow(test_x[i, :, :, :])
+            plt.show()
+            plt.imshow(output[0, :, :, :])
+            plt.show()
+        return
+        # all_losses = np.loadtxt("losses_data")
+        # gen_losses = all_losses[0].tolist()
+        # disc1_losses = all_losses[1].tolist()
+        # disc1_human_losses = all_losses[2].tolist()
+        # disc1_gen_losses = all_losses[3].tolist()
+        # disc2_losses = all_losses[4].tolist()
+        # disc2_human_losses = all_losses[5].tolist()
+        # disc2_gen_losses = all_losses[6].tolist()
 
 
     
