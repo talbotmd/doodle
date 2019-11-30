@@ -138,7 +138,7 @@ def load_dataset(num=4000, start=-1):
 
 def main():
     noise = tf.random.normal([1,256,256,3])
-    batch_size = 5
+    batch_size = 3
     test_x, test_y = load_dataset(num=100, start=0)
     generator_model = Generator()
     disc1_model = Discriminator1()
@@ -202,14 +202,18 @@ def main():
                 # Generate sketches from images
                 generated_images = generator_model(train_x[image:min(image+batch_size,train_x.shape[0]-1)],training=True)
                 
+                train_discs = False
+                if counter % 2 == 0:
+                    train_discs = True
+
                 #Discriminator 1: Human loss
-                disc1_gen_output = disc1_model(generated_images, training=True)
-                disc1_human_output = disc1_model(train_y[image:min(image+batch_size,train_x.shape[0]-1)], training=True)
+                disc1_gen_output = disc1_model(generated_images, training=train_discs)
+                disc1_human_output = disc1_model(train_y[image:min(image+batch_size,train_x.shape[0]-1)], training=train_discs)
                 disc1_cost, disc1_gen_cost, disc1_human_cost = discriminator1_cost(disc1_gen_output, disc1_human_output)
 
                 #Discriminator 2: Matching loss
-                disc2_gen_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],generated_images],3), training=True)
-                disc2_human_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+batch_size,train_x.shape[0]-1)]],3), training=True)
+                disc2_gen_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],generated_images],3), training=train_discs)
+                disc2_human_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+batch_size,train_x.shape[0]-1)]],3), training=train_discs)
                 disc2_cost, disc2_gen_cost, disc2_human_cost = discriminator2_cost(disc2_gen_output, disc2_human_output)
                 
                 #Generator loss
