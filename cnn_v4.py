@@ -163,24 +163,48 @@ def main():
     print("checkpoints: ", manager.checkpoints)
     if manager.latest_checkpoint:
         checkpoint.restore(manager.latest_checkpoint)
-        # for i in range(2000):
-        #     image_x, _ = load_dataset(num=1, start=i)
-        #     print("Restored from {}".format(manager.latest_checkpoint))
-        #     output = generator_model(image_x[0:1], training=False)
-        #     print("shape:",output.shape)
-        #     plt.imshow(image_x[0, :, :, :])
-        #     plt.show()
-        #     plt.imshow(output[0, :, :, :])
-        #     plt.show()
-        # return
-        all_losses = np.loadtxt("losses_data")
-        gen_losses = all_losses[0].tolist()
-        disc1_losses = all_losses[1].tolist()
-        disc1_human_losses = all_losses[2].tolist()
-        disc1_gen_losses = all_losses[3].tolist()
-        disc2_losses = all_losses[4].tolist()
-        disc2_human_losses = all_losses[5].tolist()
-        disc2_gen_losses = all_losses[6].tolist()
+        for i in range(20):
+            # image_x, _ = load_dataset(num=1, start=i)
+            print("Restored from {}".format(manager.latest_checkpoint))
+            output = generator_model(test_x[i:i+1], training=False)
+            print("shape:",output.shape)
+            human_test_gen = np.squeeze(disc1_model(output, training=False))
+            match_test_gen = np.squeeze(disc2_model(tf.concat([test_x[i:i+1],output],3), training=False))
+            human_test_human = np.squeeze(disc1_model(test_y[i:i+1], training=False))
+            match_test_human = np.squeeze(disc2_model(tf.concat([test_x[i:i+1],test_y[i:i+1]],3), training=False))
+            plt.subplot(1,3,1)
+            fig = plt.imshow(test_x[i, :, :, :])
+            plt.axis('off')
+            fig.axes.get_xaxis().set_visible(False)
+            fig.axes.get_yaxis().set_visible(False)
+            #plt.show()
+            plt.subplot(1,3,2)
+            fig = plt.imshow(test_y[i, :, :, :])
+            plt.axis('off')
+            fig.axes.get_xaxis().set_visible(False)
+            fig.axes.get_yaxis().set_visible(False)
+            plt.title("Human Doodle\nD_h o/p= "+str(np.round(human_test_human,2))+"\nD_m o/p= "+str(np.round(match_test_human, 2)))
+            #plt.show()
+            plt.subplot(1,3,3)
+            fig = plt.imshow(output[0, :, :, :])
+            plt.axis('off')
+            fig.axes.get_xaxis().set_visible(False)
+            fig.axes.get_yaxis().set_visible(False)
+            plt.title("Generator Output\nD_h o/p= "+str(np.round(human_test_gen,2))+"\nD_m o/p= "+str(np.round(match_test_gen, 2)))
+            plt.show()
+            #generator_model.save("Generator.h5")
+            #disc1_model.save("Discriminator_human.h5")
+            #disc2_model.save("Discriminator_match.h5")
+        return
+        
+        # all_losses = np.loadtxt("losses_data")
+        # gen_losses = all_losses[0].tolist()
+        # disc1_losses = all_losses[1].tolist()
+        # disc1_human_losses = all_losses[2].tolist()
+        # disc1_gen_losses = all_losses[3].tolist()
+        # disc2_losses = all_losses[4].tolist()
+        # disc2_human_losses = all_losses[5].tolist()
+        # disc2_gen_losses = all_losses[6].tolist()
 
 
     
@@ -243,6 +267,7 @@ def main():
             gradients_of_disc2 = disc2_tape.gradient(disc2_cost, disc2_model.trainable_variables)
             disc2_optimizer.apply_gradients(zip(gradients_of_disc2,disc2_model.trainable_variables))
 
+
         print("disc1 cost: ", average_disc1_cost/counter)
         print("human disc1 cost: ", average_human_disc1_cost/counter)
         print("gen disc1 cost: ", average_gen_disc1_cost/counter)
@@ -257,6 +282,7 @@ def main():
         disc2_losses.append(np.mean(average_disc2_cost)/counter)
         disc2_human_losses.append(np.mean(average_human_disc2_cost)/counter)
         disc2_gen_losses.append(np.mean(average_gen_disc2_cost)/counter)
+        
 
         np.savetxt('losses_data',np.array([gen_losses,disc1_losses,disc1_human_losses,disc1_gen_losses,disc2_losses,disc2_human_losses,disc2_gen_losses]))
 
@@ -290,6 +316,7 @@ def main():
         plt.plot(disc2_human_losses)
         plt.savefig("disc2_human_losses.png")
         plt.clf()
+
 	    # plt.imshow(output[0, :, :, :])
             # plt.show()
 
