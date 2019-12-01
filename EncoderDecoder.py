@@ -95,7 +95,7 @@ def EmbeddingCost(E_P, E_D, y_train,margin, n):
     # Theres a problem with this.  I think we need to use a keras layer to compute the cost
     m = len(y_train)
     #loss_fn = 1/m*(tf.keras.backend.sum(((1+1/n)*y_train - 1/n)*tf.norm(E_D-E_P,axis=1,ord=2)))+margin
-    distance_norm = tf.keras.backend.sqrt(tf.keras.backend.sum(tf.keras.backend.square(E_D - E_P), axis = 2)))
+    distance_norm = tf.keras.backend.sqrt(tf.keras.backend.sum(tf.keras.backend.square(E_D - E_P), axis = 2))
     loss_func = tf.keras.backend.sum(tf.keras.backend.relu(tf.multiply(ditance_norm,1/m*((1+1/n)*y_train - 1/n))+margin))
         # This should give norm(ED-EP) when y = 1, and 1/n*norm(ED-EP) when y is 0.
     return loss_fn
