@@ -14,7 +14,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 
 def load_dataset():
-    train_dataset = h5py.File('output.hdf5', "r")
+    train_dataset = h5py.File('output_5000.hdf5', "r")
     train_set_x_orig = np.array(train_dataset["image_dataset"][:]) # your train set features
     train_set_y_orig = np.array(train_dataset["sketch_dataset"][:]) # your train set labels
     train_set_x_flat = train_set_x_orig.reshape(train_set_x_orig.shape[0],-1).T
@@ -28,9 +28,9 @@ layers_dims_Dh = [A.shape[0], 256, 128, 64, 32, 16, 8, 4, 1]
 layers_dims_Dm = [A.shape[0]+B.shape[0], 256, 128, 64, 32, 16, 8, 4, 1]
 
 learning_rate = 1
-m = 2
-k = 5 #Number of interations of dicriminator training before training generator
-minibatch_size = 20
+m = 10000
+k = 10 #Number of interations of dicriminator training before training generator
+minibatch_size = 350
 # Makes sure the minibatch size is not larger than the dataset
 minibatch_size = min(minibatch_size, A.shape[1])
 
@@ -180,7 +180,7 @@ with tf.Session() as sess:
             #J_Hp2d += (Loss_Hp2d_,)
             #J_Dh += (Loss_Dh_,)
             #J_Dm += (Loss_Dm_,)
-        if i % 5 == 0:
+        if i % 200 == 0:
             save_path = saver.save(sess, "./checkpoints/GeneratorDiscriminator.ckpt")
             print("Saved checkpoint to file: ", save_path)
             
@@ -189,15 +189,15 @@ with tf.Session() as sess:
 #print("Loss in Dm = "+str(Loss_Dm_))
 sess.close()
 
-plt.plot(Loss_Hp2d_)
-plt.xlabel("Iterations")
-plt.ylabel("Cost Function of Generator")
-plt.plot(Loss_Dm_)
-plt.xlabel("Iterations")
-plt.ylabel("Cost Function of Match Discriminator")
-plt.plot(Loss_Dh_)
-plt.xlabel("Iterations")
-plt.ylabel("Cost Function of Drawn by Human Discriminiator")
+#plt.plot(Loss_Hp2d_)
+#plt.xlabel("Iterations")
+#plt.ylabel("Cost Function of Generator")
+#plt.plot(Loss_Dm_)
+#plt.xlabel("Iterations")
+#plt.ylabel("Cost Function of Match Discriminator")
+#plt.plot(Loss_Dh_)
+#plt.xlabel("Iterations")
+#plt.ylabel("Cost Function of Drawn by Human Discriminiator")
 
 
 
