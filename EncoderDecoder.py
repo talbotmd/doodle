@@ -104,12 +104,24 @@ def main():
         #noise = tf.random.normal([1,256,256,3])
         batch_size = 2 #Normally 1000
         batch_num = 1 #Normally 100
-        n = 1 #Number of
+        n = 1 #Number of negstive examples per positive example
+        margin = 20
         #test_x, test_y = load_minibatch(num=5, start=0)
+        img_rows, img_cols, nc = 256, 256, 3
+        input_shape = (img_rows, img_cols, nc)
+        P = Input(input_shape, name="P")
+        D = Input(input_shape, name="D")
         Model_EncD2E = EncoderD2E()
         Model_EncP2E = EncoderP2E()
         D2E_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.9)
         P2E_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.9)
+        
+        P_codes = Model_EncP2E(P)
+        D_codes = Model_EncD2E(D)
+        
+        Loss_func = EmbeddingCost(P_codes, D_codes, y_train,margin, n)
+        
+        network_train = Model(inputs=[P,D],outputs=Loss_func)
 
         #Keep track of Losses
         Encoding_losses = []
@@ -124,11 +136,14 @@ def main():
                 print("image: ", image)
                 with tf.GradientTape() as P2E_tape, tf.GradientTape() as D2E_tape:
                 # Find codes for Photos
-                    P_codes = Model_EncP2E(train_P[image:min(image+batch_size,train_P.shape[0]-1)],training=True)
+                    #P_codes = Model_EncP2E(train_P[image:min(image+batch_size,train_P.shape[0]-1)],training=True)
+                    P_inp = train_P[image:min(image+batch_size,train_P.shape[0]-1)]
+                    D_inp = train_D[image:min(image+batch_size,train_D.shape[0]-1)]
                     # Find codes for Doodles
-                    D_codes = Model_EncP2E(train_D[image:min(image+batch_size,train_D.shape[0]-1)],training=True)
+                    #D_codes = Model_EncP2E(train_D[image:min(image+batch_size,train_D.shape[0]-1)],training=True)
                 #Loss
-                    encodingLoss = EmbeddingCost(P_codes, D_codes, y_train, 1, n)
+                    #encodingLoss = EmbeddingCost(P_codes, D_codes, y_train, 1, n)
+                    encodingLoss = network_train([P_inp, D_inp])
                 
                 #Tracking loss
                     average_encoding_cost += encodingLoss
