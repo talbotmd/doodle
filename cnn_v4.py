@@ -138,7 +138,7 @@ def load_dataset(num=4000, start=-1):
 
 def main():
     noise = tf.random.normal([1,256,256,3])
-    batch_size = 5
+    batch_size = 3
     test_x, test_y = load_dataset(num=100, start=0)
     generator_model = Generator()
     disc1_model = Discriminator1()
@@ -168,11 +168,35 @@ def main():
             print("Restored from {}".format(manager.latest_checkpoint))
             output = generator_model(test_x[i:i+1], training=False)
             print("shape:",output.shape)
-            plt.imshow(test_x[i, :, :, :])
+            human_test_gen = np.squeeze(disc1_model(output, training=False))
+            match_test_gen = np.squeeze(disc2_model(tf.concat([test_x[i:i+1],output],3), training=False))
+            human_test_human = np.squeeze(disc1_model(test_y[i:i+1], training=False))
+            match_test_human = np.squeeze(disc2_model(tf.concat([test_x[i:i+1],test_y[i:i+1]],3), training=False))
+            plt.subplot(1,3,1)
+            fig = plt.imshow(test_x[i, :, :, :])
+            plt.axis('off')
+            fig.axes.get_xaxis().set_visible(False)
+            fig.axes.get_yaxis().set_visible(False)
+            #plt.show()
+            plt.subplot(1,3,2)
+            fig = plt.imshow(test_y[i, :, :, :])
+            plt.axis('off')
+            fig.axes.get_xaxis().set_visible(False)
+            fig.axes.get_yaxis().set_visible(False)
+            plt.title("Human Doodle\nD_h o/p= "+str(np.round(human_test_human,2))+"\nD_m o/p= "+str(np.round(match_test_human, 2)))
+            #plt.show()
+            plt.subplot(1,3,3)
+            fig = plt.imshow(output[0, :, :, :])
+            plt.axis('off')
+            fig.axes.get_xaxis().set_visible(False)
+            fig.axes.get_yaxis().set_visible(False)
+            plt.title("Generator Output\nD_h o/p= "+str(np.round(human_test_gen,2))+"\nD_m o/p= "+str(np.round(match_test_gen, 2)))
             plt.show()
-            plt.imshow(output[0, :, :, :])
-            plt.show()
+            #generator_model.save("Generator.h5")
+            #disc1_model.save("Discriminator_human.h5")
+            #disc2_model.save("Discriminator_match.h5")
         return
+        
         # all_losses = np.loadtxt("losses_data")
         # gen_losses = all_losses[0].tolist()
         # disc1_losses = all_losses[1].tolist()
@@ -202,14 +226,18 @@ def main():
                 # Generate sketches from images
                 generated_images = generator_model(train_x[image:min(image+batch_size,train_x.shape[0]-1)],training=True)
                 
+                train_discs = False
+                if counter % 2 == 0:
+                    train_discs = True
+
                 #Discriminator 1: Human loss
-                disc1_gen_output = disc1_model(generated_images, training=True)
-                disc1_human_output = disc1_model(train_y[image:min(image+batch_size,train_x.shape[0]-1)], training=True)
+                disc1_gen_output = disc1_model(generated_images, training=train_discs)
+                disc1_human_output = disc1_model(train_y[image:min(image+batch_size,train_x.shape[0]-1)], training=train_discs)
                 disc1_cost, disc1_gen_cost, disc1_human_cost = discriminator1_cost(disc1_gen_output, disc1_human_output)
 
                 #Discriminator 2: Matching loss
-                disc2_gen_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],generated_images],3), training=True)
-                disc2_human_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+batch_size,train_x.shape[0]-1)]],3), training=True)
+                disc2_gen_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],generated_images],3), training=train_discs)
+                disc2_human_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+batch_size,train_x.shape[0]-1)]],3), training=train_discs)
                 disc2_cost, disc2_gen_cost, disc2_human_cost = discriminator2_cost(disc2_gen_output, disc2_human_output)
                 
                 #Generator loss
@@ -239,6 +267,7 @@ def main():
             gradients_of_disc2 = disc2_tape.gradient(disc2_cost, disc2_model.trainable_variables)
             disc2_optimizer.apply_gradients(zip(gradients_of_disc2,disc2_model.trainable_variables))
 
+
         print("disc1 cost: ", average_disc1_cost/counter)
         print("human disc1 cost: ", average_human_disc1_cost/counter)
         print("gen disc1 cost: ", average_gen_disc1_cost/counter)
@@ -253,6 +282,7 @@ def main():
         disc2_losses.append(np.mean(average_disc2_cost)/counter)
         disc2_human_losses.append(np.mean(average_human_disc2_cost)/counter)
         disc2_gen_losses.append(np.mean(average_gen_disc2_cost)/counter)
+        
 
         np.savetxt('losses_data',np.array([gen_losses,disc1_losses,disc1_human_losses,disc1_gen_losses,disc2_losses,disc2_human_losses,disc2_gen_losses]))
 
@@ -286,6 +316,7 @@ def main():
         plt.plot(disc2_human_losses)
         plt.savefig("disc2_human_losses.png")
         plt.clf()
+
 	    # plt.imshow(output[0, :, :, :])
             # plt.show()
 
