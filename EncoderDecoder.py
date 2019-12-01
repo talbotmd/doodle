@@ -111,6 +111,7 @@ def main():
         input_shape = (img_rows, img_cols, nc)
         P = Input(input_shape, name="P")
         D = Input(input_shape, name="D")
+        y_true = Input(None, name="D")
         Model_EncD2E = EncoderD2E()
         Model_EncP2E = EncoderP2E()
         D2E_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.9)
@@ -119,9 +120,9 @@ def main():
         P_codes = Model_EncP2E(P)
         D_codes = Model_EncD2E(D)
         
-        Loss_func = EmbeddingCost(P_codes, D_codes, y_train,margin, n)
+        Loss_func = EmbeddingCost(P_codes, D_codes, y_true, margin, n)
         
-        network_train = Model(inputs=[P,D],outputs=Loss_func)
+        network_train = Model(inputs=[P,D, y_true],outputs=Loss_func)
 
         #Keep track of Losses
         Encoding_losses = []
@@ -143,7 +144,7 @@ def main():
                     #D_codes = Model_EncP2E(train_D[image:min(image+batch_size,train_D.shape[0]-1)],training=True)
                 #Loss
                     #encodingLoss = EmbeddingCost(P_codes, D_codes, y_train, 1, n)
-                    encodingLoss = network_train([P_inp, D_inp])
+                    encodingLoss = network_train([P_inp, D_inp, y_train])
                 
                 #Tracking loss
                     average_encoding_cost += encodingLoss
