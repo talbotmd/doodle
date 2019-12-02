@@ -49,7 +49,7 @@ def EncoderP2E():
     return tf.keras.Model(inputs=inputs, outputs=outputs, name = "EncoderP2E")
     
 def EncoderD2E():
-    inputs = tf.keras.layers.Input(shape=[256,256,6])
+    inputs = tf.keras.layers.Input(shape=[256,256,3])
     outputs = inputs
     for i in range(2):
         layer = encoder_layer(256, apply_batchnorm=False, apply_dropout=True, dropout_prob=0.2)
@@ -89,27 +89,42 @@ def load_minibatch(num=1000, start=-1, n=5):
     return train_set_P/255, train_set_D/255, y_train
 
 
-def EmbeddingCost(E_P, E_D, y_train,margin, n):
+def EmbeddingCost(inputs):
     # E_P is embedding output of picture, E_D is embedding output of Doodle, y_train indiciates whether it is positive or negative example, margin is triplet margin, n is number fo negaitve examples per positive example
     
     # Theres a problem with this.  I think we need to use a keras layer to compute the cost
-    m = len(y_train)
-    #loss_fn = 1/m*(tf.keras.backend.sum(((1+1/n)*y_train - 1/n)*tf.norm(E_D-E_P,axis=1,ord=2)))+margin
+    E_P, E_D, y_train, margin, n = inputs
+    m = np.squeeze(tf.size(y_train))
+    print(m)
     distance_norm = tf.keras.backend.sqrt(tf.keras.backend.sum(tf.keras.backend.square(E_D - E_P), axis = 2))
-    loss_func = tf.keras.backend.sum(tf.keras.backend.relu(tf.multiply(ditance_norm,1/m*((1+1/n)*y_train - 1/n))+margin))
+    labels = (1+1/n)*y_train - 1/n
+    loss_func = tf.keras.backend.sum(tf.keras.backend.relu(tf.multiply(distance_norm,labels)+margin))
         # This should give norm(ED-EP) when y = 1, and 1/n*norm(ED-EP) when y is 0.
-    return loss_fn
+    return loss_func
     
 def main():
         #noise = tf.random.normal([1,256,256,3])
         batch_size = 2 #Normally 1000
         batch_num = 1 #Normally 100
-        n = 1 #Number of
+        n = tf.constant(1.0) #Number of negative examples per positive example
+        margin = tf.constant(20.0) #triplet margin
         #test_x, test_y = load_minibatch(num=5, start=0)
+        img_rows, img_cols, nc = 256, 256, 3
+        input_shape = (img_rows, img_cols, nc)
+        P = tf.keras.layers.Input(input_shape, name="P")
+        D = tf.keras.layers.Input(input_shape, name="D")
+        y_true = tf.keras.layers.Input([None,1], name="y_true")
         Model_EncD2E = EncoderD2E()
         Model_EncP2E = EncoderP2E()
         D2E_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.9)
         P2E_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.9)
+        
+        P_codes = Model_EncP2E(P)
+        D_codes = Model_EncD2E(D)
+        
+        Loss_func = tf.keras.layers.Lambda(EmbeddingCost)([P_codes, D_codes, y_true, margin, n])
+        
+        network_train = tf.keras.Model(inputs=[P,D, y_true],outputs=Loss_func)
 
         #Keep track of Losses
         Encoding_losses = []
@@ -124,11 +139,14 @@ def main():
                 print("image: ", image)
                 with tf.GradientTape() as P2E_tape, tf.GradientTape() as D2E_tape:
                 # Find codes for Photos
-                    P_codes = Model_EncP2E(train_P[image:min(image+batch_size,train_P.shape[0]-1)],training=True)
+                    #P_codes = Model_EncP2E(train_P[image:min(image+batch_size,train_P.shape[0]-1)],training=True)
+                    P_inp = train_P[image:min(image+batch_size,train_P.shape[0]-1)]
+                    D_inp = train_D[image:min(image+batch_size,train_D.shape[0]-1)]
                     # Find codes for Doodles
-                    D_codes = Model_EncP2E(train_D[image:min(image+batch_size,train_D.shape[0]-1)],training=True)
+                    #D_codes = Model_EncP2E(train_D[image:min(image+batch_size,train_D.shape[0]-1)],training=True)
                 #Loss
-                    encodingLoss = EmbeddingCost(P_codes, D_codes, y_train, 1, n)
+                    #encodingLoss = EmbeddingCost(P_codes, D_codes, y_train, 1, n)
+                    encodingLoss = network_train([P_inp, D_inp, y_train])
                 
                 #Tracking loss
                     average_encoding_cost += encodingLoss
