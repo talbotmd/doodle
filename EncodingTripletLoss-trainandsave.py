@@ -215,7 +215,7 @@ def build_model(input_shape,EncoderP2E, EncoderD2E, margin=20):
         
 def main():
         #noise = tf.random.normal([1,256,256,3])
-        batch_size = 2 #Normally 1000
+        batch_size = 1000 #Normally 1000
         batch_num = 1 #Normally 100
         #n = tf.constant(1.0) #Number of negative examples per positive example
         #CHANGE: Assuing n is always 1train_set_p_orig
@@ -238,11 +238,12 @@ def main():
         mode = 'a' if os.path.exists('checkpoints_triplet/model.json') else 'w'
         with open('checkpoints_triplet/model.json', mode) as json_file:
             json_file.write(network_json)
-        # checkpoint_dir = "./checkpoints_triplets"
-        # checkpoint_prefix = os.path.join(checkpoint_dir, "triplet")
-        # checkpoint = tf.train.Checkpoint(optimizer=optimizer, network_train=network_train)
-        # manager = tf.train.CheckpointManager(checkpoint, checkpoint_dir, max_to_keep=3)
-        # print("checkpoints: ", manager.checkpoints)
+
+        #checkpoint_dir = "./checkpoints_triplets"
+        #checkpoint_prefix = os.path.join(checkpoint_dir, "triplet")
+        #checkpoint = tf.train.Checkpoint(optimizer=optimizer, network_train=network_train)
+        #manager = tf.train.CheckpointManager(checkpoint, checkpoint_dir, max_to_keep=3)
+        #print("checkpoints: ", manager.checkpoints)
 
         answer = input("Restore from checkpoint? (y/n)")
         if answer == 'y' or answer == 'yes':
@@ -253,17 +254,18 @@ def main():
                 which_image = input("Which image would you like to see? (int)")
 
         elif answer == 'n' or answer == 'no':
-            for epoch in range(1000):
+            for iteration in range(1000):
+                images_per_step = 1000
+		
                 #First choose positive and negative examples
-                batch = load_minibatch(num=5000)
-                for i in range(1000):
+                batch = load_minibatch(num=batch_size)
+                for i in range(0,batch_size,images_per_step):
                     print("iteration: ", i)
-                    with tf.GradientTape() as network_tape:
-                        network_train.fit([batch[0,i:i+1,:,:,:], batch[1,i:i+1,:,:,:], batch[2,i:i+1,:,:,:]])
-                        # network_gradients = network_tape.gradient(loss,network_train.trainable_variables)
-                        # optimizer.apply_gradients(zip(network_gradients, network_train.trainable_variables))
+                    print("input shape: ", np.array([batch[0,i:i+images_per_step,:,:,:], batch[1,i:i+images_per_step,:,:,:], batch[2,i:i+images_per_step,:,:,:]]).shape)
+                    network_train.fit([batch[0,i:i+images_per_step,:,:,:], batch[1,i:i+images_per_step,:,:,:], batch[2,i:i+images_per_step,:,:,:]], epochs=10)
     
-                    network_train.save_weights("./checkpoints_triplets/weights_" + str(epoch) + ".h5")
+                    if iteration % 10 == 0:
+                        network_train.save_weights("./checkpoints_triplet/weights_" + str(iteration) + ".h5")
 
 
         #Keep track of Losses
