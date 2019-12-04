@@ -58,8 +58,8 @@ def read_images_and_sketches(args):
     bad_sketch_dataset = output.create_dataset("bad_sketch_dataset", (1,256,256,3), dtype='i8',compression='gzip', maxshape=(None,None,None,None,))
 
     string_datatype = h5py.string_dtype(encoding='ascii')
-    sketch_type_dataset = output.create_dataset("sketch_type_dataset", (1),dtype=string_datatype,compression='gzip', maxshape=(None,))
-    bad_sketch_type_dataset = output.create_dataset("bad_sketch_type_dataset", (1),dtype=string_datatype,compression='gzip', maxshape=(None,))
+    sketch_type_dataset = output.create_dataset("sketch_type_dataset", (1,1),dtype=string_datatype,compression='gzip', maxshape=(None,None,))
+    bad_sketch_type_dataset = output.create_dataset("bad_sketch_type_dataset", (1,1),dtype=string_datatype,compression='gzip', maxshape=(None,None,))
     good_sketch_type_list = []
     bad_sketch_type_list = []
 
@@ -91,9 +91,9 @@ def read_images_and_sketches(args):
             bad_sketch_file = sketch_file_list[random.randint(0,len(sketch_file_list))]
             bad_output_sketches[temp_storage_counter] = np.array(imageio.imread(bad_sketch_file),dtype='i8')
 
-            good_sketch_type_list.append(object_type)
+            good_sketch_type_list.append([object_type])
             bad_object_type = bad_sketch_file.split('/')[-2]
-            bad_sketch_type_list.append(bad_object_type)
+            bad_sketch_type_list.append([bad_object_type])
 
             count += 1
             temp_storage_counter += 1
@@ -109,9 +109,9 @@ def read_images_and_sketches(args):
                 bad_sketch_dataset[index:end] = bad_output_sketches
 
                 sketch_type_dataset.resize(end,axis=0)
-                sketch_type_dataset[index:end] = good_sketch_type_list
+                sketch_type_dataset[index:end] = np.array(good_sketch_type_list)
                 bad_sketch_type_dataset.resize(end,axis=0)
-                bad_sketch_type_dataset[index:end] = bad_sketch_type_list
+                bad_sketch_type_dataset[index:end] = np.array(bad_sketch_type_list)
                 
 
                 if args.flipping_augment:
@@ -159,7 +159,7 @@ def read_images_and_sketches(args):
         test_images = output.create_dataset("test_images", (1000,256,256,3),dtype='i8',compression='gzip', maxshape=(None,None,None,None,))
         test_sketches = output.create_dataset("test_sketches", (1000,256,256,3), dtype='i8',compression='gzip', maxshape=(None,None,None,None,))
         
-        test_type_dataset = output.create_dataset("test_type_dataset", (1),dtype=string_datatype,compression='gzip', maxshape=(None,))
+        test_type_dataset = output.create_dataset("test_type_dataset", (1000,1),dtype=string_datatype,compression='gzip', maxshape=(None,None,))
         test_type_list = []
 
         for i in range(1000):
@@ -169,7 +169,7 @@ def read_images_and_sketches(args):
             output_images[i] = np.array(imageio.imread(file_name_and_loc),dtype='i8')
             file_name = file_name_and_loc.split('/')[-1][:-4] #This isolates the file name, and drops the file type
             object_type = file_name_and_loc.split('/')[-2]
-            test_type_list.append(object_type)
+            test_type_list.append([object_type])
 
             sketch_index = sketch_index_start
             sketch_name = file_name + "-" + str(sketch_index)
@@ -186,7 +186,7 @@ def read_images_and_sketches(args):
         # Write to the test set
         test_images[0:1000] = output_images
         test_sketches[0:1000] = output_sketches
-        test_type_dataset[0:1000] = test_type_list
+        test_type_dataset[0:1000] = np.array(test_type_list)
 
     return image_dataset, sketch_dataset
 
