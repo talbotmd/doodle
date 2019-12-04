@@ -102,7 +102,7 @@ def build_EncoderD2E(input_shape, embeddingsize=128):
     network.add(Conv2D(128, (3,3), activation='relu', kernel_initializer='he_uniform',
                      kernel_regularizer=l2(2e-4)))
     network.add(Flatten())
-    network.add(Dense(256, activation='relu',
+    network.add(Dense(128, activation='relu',
                    kernel_regularizer=l2(1e-3),
                    kernel_initializer='he_uniform'))
     
@@ -137,7 +137,7 @@ def build_EncoderP2E(input_shape, embeddingsize=128):
     network.add(Conv2D(128, (3,3), activation='relu', kernel_initializer='he_uniform',
                      kernel_regularizer=l2(2e-4)))
     network.add(Flatten())
-    network.add(Dense(256, activation='relu',
+    network.add(Dense(128, activation='relu',
                    kernel_regularizer=l2(1e-3),
                    kernel_initializer='he_uniform'))
     
