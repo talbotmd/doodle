@@ -217,6 +217,8 @@ def main():
         #noise = tf.random.normal([1,256,256,3])
         batch_size = 1000 #Normally 1000
         batch_num = 1 #Normally 100
+        nCP = 10 #Save checkpoint every nCP epochs
+        nSM = 100 #Save model every nSM checkpoints
         #n = tf.constant(1.0) #Number of negative examples per positive example
         #CHANGE: Assuing n is always 1train_set_p_orig
         margin = tf.constant(20.0) #triplet margin
@@ -226,6 +228,10 @@ def main():
         
         EncoderD2E = build_EncoderD2E(input_shape)
         EncoderP2E = build_EncoderP2E(input_shape)
+        
+        
+        #EncoderD2E.save("./EncoderModel_Saves/EncoderD2E_" + str(5) + ".h5")
+        #EncoderP2E.save("./EncoderModel_Saves/EncoderP2E_" + str(5) + ".h5")
         
         optimizer = Adam(0.0001, beta_1=0.9)
         
@@ -264,8 +270,12 @@ def main():
                     print("input shape: ", np.array([batch[0,i:i+images_per_step,:,:,:], batch[1,i:i+images_per_step,:,:,:], batch[2,i:i+images_per_step,:,:,:]]).shape)
                     network_train.fit([batch[0,i:i+images_per_step,:,:,:], batch[1,i:i+images_per_step,:,:,:], batch[2,i:i+images_per_step,:,:,:]], epochs=10)
     
-                    if iteration % 10 == 0:
+                    if iteration % nCP == 0:
                         network_train.save_weights("./checkpoints_triplet/weights_" + str(iteration) + ".h5")
+                   
+                    if iteration % nSM == 0:
+                        EncoderD2E.save("./EncoderModel_Saves/EncoderD2E_" + str(iteration) + ".h5")
+                        EncoderP2E.save("./EncoderModel_Saves/EncoderP2E_" + str(iteration) + ".h5")
 
 
         #Keep track of Losses
