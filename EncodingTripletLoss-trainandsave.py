@@ -255,7 +255,7 @@ def main():
         elif answer == 'n' or answer == 'no':
             for epoch in range(1000):
                 #First choose positive and negative examples
-                batch = load_minibatch(num=10000)
+                batch = load_minibatch(num=5000)
                 for i in range(1000):
                     print("iteration: ", i)
                     with tf.GradientTape() as network_tape:
