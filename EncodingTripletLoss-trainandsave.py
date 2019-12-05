@@ -179,6 +179,11 @@ def load_minibatch(num=1000, start=-1):
     
     return triplets
 
+def load_testset():
+    dataset = h5py.File('output.hdf5', 'r')
+    test_set_P = np.array(dataset["test_images"],dtype="float32")
+    test_set_D = np.array(dataset["test_images"],dtype="float32")
+    return test_set_P, test_set_D
 
 class TripletLossLayer(Layer):
     def __init__(self, alpha, **kwargs):
@@ -254,10 +259,23 @@ def main():
         answer = input("Restore from checkpoint? (y/n)")
         if answer == 'y' or answer == 'yes':
             which_epoch = input("which epoch? (int)")
-            network_json.load_weights("checkpoints_triplet/weights_" + int(which_epoch) + ".h5")
+            network_train.load_weights("checkpoints_triplet/weights_" + str(which_epoch) + ".h5")
             print("loaded weights from disk")
+            # test_set_P, test_set_D = load_testset()
+            test_set_P, test_set_D, test_set_bad_D = load_minibatch(num=100, start=0)
+
             while True:
-                which_image = input("Which image would you like to see? (int)")
+                which_image = input("Which test image would you like to see? (int)")
+                dist_real = EncoderP2E.predict(test_set_P[int(which_image):int(which_image) + 1]) - EncoderD2E.predict(test_set_D[int(which_image):int(which_image) + 1])
+                dist_fake = EncoderP2E.predict(test_set_P[int(which_image):int(which_image) + 1]) - EncoderD2E.predict(test_set_bad_D[int(which_image):int(which_image) + 1])
+                print("dist_real: ", np.sum(np.square(dist_real)))
+                print("dist_fake: ", np.sum(np.square(dist_fake)))
+                plt.imshow(test_set_P[int(which_image)])
+                plt.show()
+                plt.imshow(test_set_D[int(which_image)])
+                plt.show()
+                plt.imshow(test_set_bad_D[int(which_image)])
+                plt.show()
 
         elif answer == 'n' or answer == 'no':
             for iteration in range(1000):
@@ -278,87 +296,8 @@ def main():
                         EncoderP2E.save("./EncoderModel_Saves/EncoderP2E_" + str(iteration) + ".h5")
 
 
-        #Keep track of Losses
-#        Encoding_losses = []
-        
-#        for epoch in range(3000):
-#            train_P, train_D, y_train = load_minibatch(batch_size, start=-1, n=5)
-#            print("epoch: ", epoch)
-#            average_encoding_cost = 0
-#            average_D2E_cost = 0
-#            counter = 0
-#            for image in range(0,train_P.shape[0]-1,batch_size):
-#                print("image: ", image)
-#                with tf.GradientTape() as P2E_tape, tf.GradientTape() as D2E_tape:
-                # Find codes for Photos
-#                    #P_codes = Model_EncP2E(train_P[image:min(image+batch_size,train_P.shape[0]-1)],training=True)
-#                    P_inp = train_P[image:min(image+batch_size,train_P.shape[0]-1)]
-#                    D_inp = train_D[image:min(image+batch_size,train_D.shape[0]-1)]
-                    # Find codes for Doodles
-                    #D_codes = Model_EncP2E(train_D[image:min(image+batch_size,train_D.shape[0]-1)],training=True)
-                #Loss
-                    #encodingLoss = EmbeddingCost(P_codes, D_codes, y_train, 1, n)
-#                    encodingLoss = network_train([P_inp, D_inp, y_train])
-                
-                #Tracking loss
- #                   average_encoding_cost += encodingLoss
- #                   counter += 1
-
-            ### Gradient Decent ###
-            #P2E Encoder
- #               gradients_P2E = P2E_tape.gradient(encodingLoss, Model_EncP2E.trainable_variables)
- #               P2E_optimizer.apply_gradients(zip(gradients_P2E, Model_EncP2E.trainable_variables))
-            
-            #D2E Encoder
-  #              gradients_D2E = D2E_tape.gradient(encodingLoss, Model_EncD2E.trainable_variables)
-  #              D2E_optimizer.apply_gradients(zip(gradients_D2E, Model_EncD2E.trainable_variables))
-        
-
-  #      print("Embedding Cost: ", average_disc1_cost/counter)
-  #      Encoding_losses.append(np.mean(average_encoding_cost)/counter)
-        
-
-        #np.savetxt('losses_data',np.array([gen_losses,disc1_losses,disc1_human_losses,disc1_gen_losses,disc2_losses,disc2_human_losses,disc2_gen_losses]))
-
-        # Plot loss and save train/test images on every iteration
-        #output = generator_model(test_x[test_x.shape[0]-1:test_x.shape[0]], training=False)
-        #plt.imshow(output[0, :, :, :])
-        #plt.savefig("test-" + str(len(gen_losses)) + ".png")
-        #plt.clf()
-        #output = generator_model(test_x[0:1], training=False)
-        #plt.imshow(output[0, :, :, :])
-        #plt.savefig("train-" + str(len(gen_losses)) + ".png")
-        #plt.clf()
-        #plt.plot(gen_losses)
-        #plt.savefig("gen_losses.png")
-        #plt.clf()
-        #plt.plot(disc1_losses)
-        #plt.savefig("disc1_losses.png")
-        #plt.clf()
-        #plt.plot(disc1_gen_losses)
-        #plt.savefig("disc1_gen_losses.png")
-        #plt.clf()
-        #plt.plot(disc1_human_losses)
-        #plt.savefig("disc1_human_losses.png")
-        #plt.clf()
-        #plt.plot(disc2_losses)
-        #plt.savefig("disc2_losses.png")
-        #plt.clf()
-        #plt.plot(disc2_gen_losses)
-        #plt.savefig("disc2_gen_losses.png")
-        #plt.clf()
-        #plt.plot(disc2_human_losses)
-        #plt.savefig("disc2_human_losses.png")
-        #plt.clf()
-
-        # plt.imshow(output[0, :, :, :])
-            # plt.show()
-
-        # Save a checkpoint every other iteration
-        #if epoch % 2 == 0:
-        #    checkpoint.save(file_prefix=checkpoint_prefix)
-
 
 if __name__ == "__main__":
     main()
+
 
