@@ -31,31 +31,31 @@ def decoder_layer(num_filters, apply_batchnorm=True,apply_dropout=False, dropout
 def Generator():
     inputs = tf.keras.layers.Input(shape=[256,256,3])  
     outputs = inputs
-    layer = encoder_layer(64, apply_dropout=True, dropout_prob=0.1, strides=1)
+    layer = encoder_layer(32, apply_dropout=True, dropout_prob=0.1, strides=1)
     outputs = layer(outputs) # 256
     save_1 = outputs
-    layer = encoder_layer(128, apply_dropout=True, dropout_prob=0.1, strides=1)
+    layer = encoder_layer(64, apply_dropout=True, dropout_prob=0.1, strides=1)
     outputs = layer(outputs)# 256
     save_2 = outputs
-    layer = encoder_layer(256, apply_dropout=True, dropout_prob=0.1)
+    layer = encoder_layer(128, apply_dropout=True, dropout_prob=0.1)
     outputs = layer(outputs) # 128
     save_3 = outputs
-    layer = encoder_layer(256, apply_dropout=True, dropout_prob=0.1)
+    layer = encoder_layer(128, apply_dropout=True, dropout_prob=0.1)
     outputs = layer(outputs) # 64
     save_4 = outputs
-    layer = encoder_layer(256, apply_dropout=True, dropout_prob=0.1)
+    layer = encoder_layer(64, apply_dropout=True, dropout_prob=0.1)
     outputs = layer(outputs) # 32
     save_5 = outputs
         
     # for i in range(2):
-    layer = decoder_layer(256, apply_dropout=True, dropout_prob=0.5)
+    layer = decoder_layer(64, apply_dropout=True, dropout_prob=0.5)
     outputs = layer(outputs) # 65
     outputs = tf.keras.layers.Concatenate()([outputs,save_4])
-    layer = decoder_layer(256, apply_dropout=True, dropout_prob=0.5)
+    layer = decoder_layer(64, apply_dropout=True, dropout_prob=0.5)
     outputs = layer(outputs) # 128
     outputs = tf.keras.layers.Concatenate()([outputs,save_3])
     # for i in range(2):
-    layer = decoder_layer(256, apply_dropout=False, strides=2)
+    layer = decoder_layer(128, apply_dropout=False, strides=2)
     outputs = layer(outputs) # 256
     outputs = tf.keras.layers.Concatenate()([outputs,save_2])
     layer = decoder_layer(256, apply_dropout=False, strides=1)
@@ -87,14 +87,14 @@ def Discriminator1():
 def Discriminator2():
     inputs = tf.keras.layers.Input(shape=[256,256,6])
     outputs = inputs
-    for i in range(2):
-        layer = encoder_layer(256, apply_batchnorm=False, apply_dropout=True, dropout_prob=0.2)
-        outputs = layer(outputs)
-    for i in range(3):
-        layer = encoder_layer(128, apply_dropout=True, dropout_prob=0.2)
+    for i in range(1):
+        layer = encoder_layer(64, apply_batchnorm=False, apply_dropout=True, dropout_prob=0.2)
         outputs = layer(outputs)
     for i in range(2):
-        layer = encoder_layer(64, apply_dropout=True, dropout_prob=0.2)
+        layer = encoder_layer(32, apply_dropout=True, dropout_prob=0.2)
+        outputs = layer(outputs)
+    for i in range(1):
+        layer = encoder_layer(32, apply_dropout=True, dropout_prob=0.2)
         outputs = layer(outputs)
     layer = tf.keras.layers.Conv2D(1,4,strides=2,padding='same',kernel_initializer=tf.random_normal_initializer(0., 0.02),
         activation='sigmoid')
