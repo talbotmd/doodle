@@ -131,7 +131,7 @@ def discriminator2_cost(gen_output,human_output):
 def load_dataset(num=4000, start=-1):
     train_dataset = h5py.File('output.hdf5', "r")
     if start < 0:
-        start = random.randint(0,9000)
+        start = random.randint(0,20000-num)
     train_set_x_orig = np.array(train_dataset["image_dataset"][start:start+num],dtype='float32') # your train set features
     train_set_y_orig = np.array(train_dataset["sketch_dataset"][start:start+num],dtype='float32') # your train set labels
     return train_set_x_orig/255, train_set_y_orig/255
@@ -209,8 +209,8 @@ def main():
 
     
 
-    for epoch in range(3000):
-        train_x, train_y = load_dataset(num=500)
+    for epoch in range(5000):
+        train_x, train_y = load_dataset(num=4000)
         print("epoch: ", epoch)
         average_disc1_cost = 0
         average_human_disc1_cost = 0
