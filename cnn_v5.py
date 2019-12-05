@@ -51,7 +51,7 @@ def Generator():
     layer = decoder_layer(64, apply_dropout=True, dropout_prob=0.5)
     outputs = layer(outputs) # 65
     outputs = tf.keras.layers.Concatenate()([outputs,save_4])
-    layer = decoder_layer(64, apply_dropout=True, dropout_prob=0.5)
+    layer = decoder_layer(128, apply_dropout=True, dropout_prob=0.5)
     outputs = layer(outputs) # 128
     outputs = tf.keras.layers.Concatenate()([outputs,save_3])
     # for i in range(2):
@@ -138,7 +138,7 @@ def load_dataset(num=4000, start=-1):
 
 def main():
     noise = tf.random.normal([1,256,256,3])
-    batch_size = 20
+    batch_size = 5
     test_x, test_y = load_dataset(num=100, start=0)
     generator_model = Generator()
     # disc1_model = Discriminator1()
