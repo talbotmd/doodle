@@ -214,7 +214,7 @@ def main():
     for epoch in range(3000):
         train_x, train_y = load_dataset(num=500)
         print("epoch: ", epoch)
-        average_disc1_cost = 0
+        #average_disc1_cost = 0
         #average_human_disc1_cost = 0
         #average_gen_disc1_cost = 0
         average_disc2_cost = 0
@@ -224,7 +224,8 @@ def main():
         counter = 0
         for image in range(0,train_x.shape[0]-1,batch_size):
             print("image: ", image)
-            with tf.GradientTape() as gen_tape, tf.GradientTape() as disc1_tape, tf.GradientTape() as disc2_tape:
+            # with tf.GradientTape() as gen_tape, tf.GradientTape() as disc1_tape, tf.GradientTape() as disc2_tape:
+            with tf.GradientTape() as gen_tape, tf.GradientTape() as disc2_tape:
                 # Generate sketches from images
                 generated_images = generator_model(train_x[image:min(image+batch_size,train_x.shape[0]-1)],training=True)
                 
@@ -286,7 +287,8 @@ def main():
         disc2_gen_losses.append(np.mean(average_gen_disc2_cost)/counter)
         
 
-        np.savetxt('losses_data',np.array([gen_losses,disc1_losses,disc1_human_losses,disc1_gen_losses,disc2_losses,disc2_human_losses,disc2_gen_losses]))
+        #np.savetxt('losses_data',np.array([gen_losses,disc1_losses,disc1_human_losses,disc1_gen_losses,disc2_losses,disc2_human_losses,disc2_gen_losses]))
+        np.savetxt('losses_data',np.array([gen_losses,disc2_losses,disc2_human_losses,disc2_gen_losses]))
 
         # Plot loss and save train/test images on every iteration
         output = generator_model(test_x[test_x.shape[0]-1:test_x.shape[0]], training=False)
