@@ -156,7 +156,7 @@ def load_minibatch(num=1000, start=-1):
     # Assumes the in output.hdf5 pairs are already shuffled and randomized. negative examples are created by adding a
     train_dataset = h5py.File('output.hdf5', "r")
     if start < 0:
-        start = random.randint(0,2000)
+        start = random.randint(0,18000)
     train_set_P_orig = np.array(train_dataset["image_dataset"][start:start+num],dtype='float32')
     train_set_D_orig = np.array(train_dataset["sketch_dataset"][start:start+num],dtype='float32')
     
@@ -268,7 +268,7 @@ def main():
                 for i in range(0,batch_size,images_per_step):
                     print("iteration: ", i)
                     print("input shape: ", np.array([batch[0,i:i+images_per_step,:,:,:], batch[1,i:i+images_per_step,:,:,:], batch[2,i:i+images_per_step,:,:,:]]).shape)
-                    network_train.fit([batch[0,i:i+images_per_step,:,:,:], batch[1,i:i+images_per_step,:,:,:], batch[2,i:i+images_per_step,:,:,:]], epochs=10)
+                    network_train.fit([batch[0,i:i+images_per_step,:,:,:], batch[1,i:i+images_per_step,:,:,:], batch[2,i:i+images_per_step,:,:,:]], epochs=5)
     
                     if iteration % nCP == 0:
                         network_train.save_weights("./checkpoints_triplet/weights_" + str(iteration) + ".h5")
