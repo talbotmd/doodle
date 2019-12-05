@@ -138,7 +138,7 @@ def load_dataset(num=4000, start=-1):
 
 def main():
     noise = tf.random.normal([1,256,256,3])
-    batch_size = 50
+    batch_size = 20
     test_x, test_y = load_dataset(num=100, start=0)
     generator_model = Generator()
     # disc1_model = Discriminator1()
