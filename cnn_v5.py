@@ -5,10 +5,10 @@ import tensorflow as tf
 import os
 import random
 
-def encoder_layer(num_filters, apply_batchnorm=True,apply_dropout=False, dropout_prob=0.5):
+def encoder_layer(num_filters, apply_batchnorm=True,apply_dropout=False, dropout_prob=0.5, strides=2):
     initializer = tf.random_normal_initializer(0., 0.02)
     model = tf.keras.Sequential()
-    model.add(tf.keras.layers.Conv2D(num_filters,4,strides=2,padding='same',kernel_initializer=initializer,use_bias=False))
+    model.add(tf.keras.layers.Conv2D(num_filters,4,strides=strides,padding='same',kernel_initializer=initializer,use_bias=False))
     if apply_batchnorm:
         model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.LeakyReLU())
@@ -16,10 +16,10 @@ def encoder_layer(num_filters, apply_batchnorm=True,apply_dropout=False, dropout
         model.add(tf.keras.layers.Dropout(dropout_prob))
     return model
 
-def decoder_layer(num_filters, apply_batchnorm=True,apply_dropout=False, dropout_prob=0.5):
+def decoder_layer(num_filters, apply_batchnorm=True,apply_dropout=False, dropout_prob=0.5, strides=2):
     initializer = tf.random_normal_initializer(0., 0.02)
     model = tf.keras.Sequential()
-    model.add(tf.keras.layers.Conv2DTranspose(num_filters,4,strides=2,padding='same',kernel_initializer=initializer,use_bias=False))
+    model.add(tf.keras.layers.Conv2DTranspose(num_filters,4,strides=strides,padding='same',kernel_initializer=initializer,use_bias=False))
     if apply_batchnorm:
         model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.LeakyReLU())
@@ -31,43 +31,43 @@ def decoder_layer(num_filters, apply_batchnorm=True,apply_dropout=False, dropout
 def Generator():
     inputs = tf.keras.layers.Input(shape=[256,256,3])  
     outputs = inputs
-    layer = encoder_layer(64, apply_dropout=True, dropout_prob=0.1)
-    outputs = layer(outputs) # 128
+    layer = encoder_layer(64, apply_dropout=True, dropout_prob=0.1, strides=1)
+    outputs = layer(outputs) # 256
     save_1 = outputs
-    layer = encoder_layer(128, apply_dropout=True, dropout_prob=0.1)
-    outputs = layer(outputs)# 64
+    layer = encoder_layer(128, apply_dropout=True, dropout_prob=0.1, strides=1)
+    outputs = layer(outputs)# 256
     save_2 = outputs
     layer = encoder_layer(256, apply_dropout=True, dropout_prob=0.1)
-    outputs = layer(outputs) # 32
+    outputs = layer(outputs) # 128
     save_3 = outputs
     layer = encoder_layer(256, apply_dropout=True, dropout_prob=0.1)
-    outputs = layer(outputs) # 16
+    outputs = layer(outputs) # 64
     save_4 = outputs
     layer = encoder_layer(256, apply_dropout=True, dropout_prob=0.1)
-    outputs = layer(outputs) # 8
+    outputs = layer(outputs) # 32
     save_5 = outputs
         
     # for i in range(2):
     layer = decoder_layer(256, apply_dropout=True, dropout_prob=0.5)
-    outputs = layer(outputs) # 16
+    outputs = layer(outputs) # 65
     outputs = tf.keras.layers.Concatenate()([outputs,save_4])
     layer = decoder_layer(256, apply_dropout=True, dropout_prob=0.5)
-    outputs = layer(outputs) # 32
+    outputs = layer(outputs) # 128
     outputs = tf.keras.layers.Concatenate()([outputs,save_3])
     # for i in range(2):
-    layer = decoder_layer(256, apply_dropout=False)
-    outputs = layer(outputs) # 64
+    layer = decoder_layer(256, apply_dropout=False, strides=2)
+    outputs = layer(outputs) # 256
     outputs = tf.keras.layers.Concatenate()([outputs,save_2])
-    layer = decoder_layer(256, apply_dropout=False)
-    outputs = layer(outputs) # 128
+    layer = decoder_layer(256, apply_dropout=False, strides=1)
+    outputs = layer(outputs) # 256
     outputs = tf.keras.layers.Concatenate()([outputs,save_1])
     # layer = decoder_layer(3)
-    layer = tf.keras.layers.Conv2DTranspose(3,4,strides=2,padding='same',kernel_initializer=tf.random_normal_initializer(0., 0.02),
+    layer = tf.keras.layers.Conv2DTranspose(3,4,strides=1,padding='same',kernel_initializer=tf.random_normal_initializer(0., 0.02),
             activation='sigmoid')
     outputs = layer(outputs) # 256
     return tf.keras.Model(inputs=inputs,outputs=outputs)
 
-'''def Discriminator1():
+def Discriminator1():
     inputs = tf.keras.layers.Input(shape=[256,256,3])
     outputs = inputs
     for i in range(2):
@@ -82,7 +82,7 @@ def Generator():
     layer = tf.keras.layers.Conv2D(1,4,strides=2,padding='same',kernel_initializer=tf.random_normal_initializer(0., 0.02),
         activation='sigmoid')
     outputs = layer(outputs)
-    return tf.keras.Model(inputs=inputs, outputs=outputs)'''
+    return tf.keras.Model(inputs=inputs, outputs=outputs)
     
 def Discriminator2():
     inputs = tf.keras.layers.Input(shape=[256,256,6])
@@ -114,13 +114,13 @@ def Discriminator2():
     # return l1_loss
 def generator_cost(disc2_output,gen_output,target):
     loss_fn = tf.keras.losses.BinaryCrossentropy()
-    return loss_fn(loss_fn(tf.ones_like(disc2_output),disc2_output) + tf.dtypes.cast(0.01*tf.reduce_mean(tf.abs(target - gen_output)), tf.float32)
+    return loss_fn(tf.ones_like(disc2_output),disc2_output) + tf.dtypes.cast(0.01*tf.reduce_mean(tf.abs(target - gen_output)), tf.float32)
 
-'''def discriminator1_cost(gen_output,human_output):
+def discriminator1_cost(gen_output,human_output):
     loss_fn = tf.keras.losses.BinaryCrossentropy()
     gen_loss = loss_fn(tf.zeros_like(gen_output), gen_output)
     human_loss = loss_fn(tf.ones_like(human_output),human_output)
-    return gen_loss + human_loss, gen_loss, human_loss'''
+    return gen_loss + human_loss, gen_loss, human_loss
 
 def discriminator2_cost(gen_output,human_output):
     loss_fn = tf.keras.losses.BinaryCrossentropy()
@@ -138,27 +138,26 @@ def load_dataset(num=4000, start=-1):
 
 def main():
     noise = tf.random.normal([1,256,256,3])
-    batch_size = 3
+    batch_size = 1
     test_x, test_y = load_dataset(num=100, start=0)
     generator_model = Generator()
-    #disc1_model = Discriminator1()
+    # disc1_model = Discriminator1()
     disc2_model = Discriminator2()
-    generator_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.9)
-    #disc1_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.3)
-    disc2_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.9)
+    generator_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.6)
+    # disc1_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.3)
+    disc2_optimizer = tf.keras.optimizers.Adam(0.0001, beta_1=0.6)
 
     # Keeps track of the losses for plotting
     gen_losses = []
-    #disc1_losses = []
-    #disc1_human_losses = []
-    #disc1_gen_losses = []
+    # disc1_losses = []
+    # disc1_human_losses = []
+    # disc1_gen_losses = []
     disc2_losses = []
     disc2_human_losses = []
     disc2_gen_losses = []
 
-    checkpoint_dir = "./checkpoints_v4"
-    checkpoint_prefix = os.path.join(checkpoint_dir, "cnn_v4")
-    #checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer, generator=generator_model, discriminator_optimizer=disc1_optimizer,discriminator=disc1_model, disc2_optimizer=disc2_optimizer, disc2=disc2_model)
+    checkpoint_dir = "./checkpoints_v6"
+    checkpoint_prefix = os.path.join(checkpoint_dir, "cnn_v6")
     checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer, generator=generator_model, disc2_optimizer=disc2_optimizer, disc2=disc2_model)
     manager = tf.train.CheckpointManager(checkpoint, checkpoint_dir, max_to_keep=3)
     print("checkpoints: ", manager.checkpoints)
@@ -169,9 +168,9 @@ def main():
             print("Restored from {}".format(manager.latest_checkpoint))
             output = generator_model(test_x[i:i+1], training=False)
             print("shape:",output.shape)
-            #human_test_gen = np.squeeze(disc1_model(output, training=False))
+            # human_test_gen = np.squeeze(disc1_model(output, training=False))
             match_test_gen = np.squeeze(disc2_model(tf.concat([test_x[i:i+1],output],3), training=False))
-            #human_test_human = np.squeeze(disc1_model(test_y[i:i+1], training=False))
+            # human_test_human = np.squeeze(disc1_model(test_y[i:i+1], training=False))
             match_test_human = np.squeeze(disc2_model(tf.concat([test_x[i:i+1],test_y[i:i+1]],3), training=False))
             plt.subplot(1,3,1)
             fig = plt.imshow(test_x[i, :, :, :])
@@ -184,15 +183,14 @@ def main():
             plt.axis('off')
             fig.axes.get_xaxis().set_visible(False)
             fig.axes.get_yaxis().set_visible(False)
-            #plt.title("Human Doodle\nD_h o/p= "+str(np.round(human_test_human,2))+"\nD_m o/p= "+str(np.round(match_test_human, 2)))
-            plt.title("Human Doodle\nD_m o/p= "+str(np.round(match_test_human, 2)))
+            plt.title("Human Doodle\nD_h o/p= "+str(np.round(human_test_human,2))+"\nD_m o/p= "+str(np.round(match_test_human, 2)))
             #plt.show()
             plt.subplot(1,3,3)
             fig = plt.imshow(output[0, :, :, :])
             plt.axis('off')
             fig.axes.get_xaxis().set_visible(False)
             fig.axes.get_yaxis().set_visible(False)
-            plt.title("Generator Output\nD_m o/p= "+str(np.round(match_test_gen, 2)))
+            plt.title("Generator Output\nD_h o/p= "+str(np.round(human_test_gen,2))+"\nD_m o/p= "+str(np.round(match_test_gen, 2)))
             plt.show()
             #generator_model.save("Generator.h5")
             #disc1_model.save("Discriminator_human.h5")
@@ -214,9 +212,9 @@ def main():
     for epoch in range(3000):
         train_x, train_y = load_dataset(num=500)
         print("epoch: ", epoch)
-        #average_disc1_cost = 0
-        #average_human_disc1_cost = 0
-        #average_gen_disc1_cost = 0
+        average_disc1_cost = 0
+        average_human_disc1_cost = 0
+        average_gen_disc1_cost = 0
         average_disc2_cost = 0
         average_human_disc2_cost = 0
         average_gen_disc2_cost = 0
@@ -224,7 +222,6 @@ def main():
         counter = 0
         for image in range(0,train_x.shape[0]-1,batch_size):
             print("image: ", image)
-            # with tf.GradientTape() as gen_tape, tf.GradientTape() as disc1_tape, tf.GradientTape() as disc2_tape:
             with tf.GradientTape() as gen_tape, tf.GradientTape() as disc2_tape:
                 # Generate sketches from images
                 generated_images = generator_model(train_x[image:min(image+batch_size,train_x.shape[0]-1)],training=True)
@@ -234,9 +231,9 @@ def main():
                     train_discs = True
 
                 #Discriminator 1: Human loss
-                #disc1_gen_output = disc1_model(generated_images, training=train_discs)
-                #disc1_human_output = disc1_model(train_y[image:min(image+batch_size,train_x.shape[0]-1)], training=train_discs)
-                #disc1_cost, disc1_gen_cost, disc1_human_cost = discriminator1_cost(disc1_gen_output, disc1_human_output)
+                # disc1_gen_output = disc1_model(generated_images, training=train_discs)
+                # disc1_human_output = disc1_model(train_y[image:min(image+batch_size,train_x.shape[0]-1)], training=train_discs)
+                # disc1_cost, disc1_gen_cost, disc1_human_cost = discriminator1_cost(disc1_gen_output, disc1_human_output)
 
                 #Discriminator 2: Matching loss
                 disc2_gen_output = disc2_model(tf.concat([train_x[image:min(image+batch_size,train_x.shape[0]-1)],generated_images],3), training=train_discs)
@@ -247,9 +244,9 @@ def main():
                 gen_cost = generator_cost(disc2_gen_output,train_x[image:min(image+batch_size,train_x.shape[0]-1)],train_y[image:min(image+batch_size,train_x.shape[0]-1)])
                 
                 #Tracking loss
-                #average_human_disc1_cost += disc1_human_cost
-                #average_gen_disc1_cost += disc1_gen_cost
-                #average_disc1_cost += disc1_cost
+                # average_human_disc1_cost += disc1_human_cost
+                # average_gen_disc1_cost += disc1_gen_cost
+                # average_disc1_cost += disc1_cost
                 average_human_disc2_cost += disc2_human_cost
                 average_gen_disc2_cost += disc2_gen_cost
                 average_disc2_cost += disc2_cost
@@ -262,32 +259,31 @@ def main():
             gradients_of_generator = gen_tape.gradient(gen_cost, generator_model.trainable_variables)
             generator_optimizer.apply_gradients(zip(gradients_of_generator, generator_model.trainable_variables))
             
-            #Discriminator 1: Human
-            #gradients_of_disc1 = disc1_tape.gradient(disc1_cost, disc1_model.trainable_variables)
-            #disc1_optimizer.apply_gradients(zip(gradients_of_disc1,disc1_model.trainable_variables))
+            # #Discriminator 1: Human
+            # gradients_of_disc1 = disc1_tape.gradient(disc1_cost, disc1_model.trainable_variables)
+            # disc1_optimizer.apply_gradients(zip(gradients_of_disc1,disc1_model.trainable_variables))
         
             #Discriminator 2: Matching
             gradients_of_disc2 = disc2_tape.gradient(disc2_cost, disc2_model.trainable_variables)
             disc2_optimizer.apply_gradients(zip(gradients_of_disc2,disc2_model.trainable_variables))
 
 
-        #print("disc1 cost: ", average_disc1_cost/counter)
-        #print("human disc1 cost: ", average_human_disc1_cost/counter)
-        #print("gen disc1 cost: ", average_gen_disc1_cost/counter)
+        # print("disc1 cost: ", average_disc1_cost/counter)
+        # print("human disc1 cost: ", average_human_disc1_cost/counter)
+        # print("gen disc1 cost: ", average_gen_disc1_cost/counter)
         print("disc2 cost: ", average_disc2_cost/counter)
         print("human disc2 cost: ", average_human_disc2_cost/counter)
         print("gen disc2 cost: ", average_gen_disc2_cost/counter)
         print("gen cost: ", average_gen_cost/counter)
         gen_losses.append(np.mean(average_gen_cost)/counter)
-        #disc1_losses.append(np.mean(average_disc1_cost)/counter)
-        #disc1_human_losses.append(np.mean(average_human_disc1_cost)/counter)
-        #disc1_gen_losses.append(np.mean(average_gen_disc1_cost)/counter)
+        # disc1_losses.append(np.mean(average_disc1_cost)/counter)
+        # disc1_human_losses.append(np.mean(average_human_disc1_cost)/counter)
+        # disc1_gen_losses.append(np.mean(average_gen_disc1_cost)/counter)
         disc2_losses.append(np.mean(average_disc2_cost)/counter)
         disc2_human_losses.append(np.mean(average_human_disc2_cost)/counter)
         disc2_gen_losses.append(np.mean(average_gen_disc2_cost)/counter)
         
 
-        #np.savetxt('losses_data',np.array([gen_losses,disc1_losses,disc1_human_losses,disc1_gen_losses,disc2_losses,disc2_human_losses,disc2_gen_losses]))
         np.savetxt('losses_data',np.array([gen_losses,disc2_losses,disc2_human_losses,disc2_gen_losses]))
 
         # Plot loss and save train/test images on every iteration
@@ -302,15 +298,15 @@ def main():
         plt.plot(gen_losses)
         plt.savefig("gen_losses.png")
         plt.clf()
-        #plt.plot(disc1_losses)
-        #plt.savefig("disc1_losses.png")
-        #plt.clf()
-        #plt.plot(disc1_gen_losses)
-        #plt.savefig("disc1_gen_losses.png")
-        #plt.clf()
-        #plt.plot(disc1_human_losses)
-        #plt.savefig("disc1_human_losses.png")
-        #plt.clf()
+        # plt.plot(disc1_losses)
+        # plt.savefig("disc1_losses.png")
+        # plt.clf()
+        # plt.plot(disc1_gen_losses)
+        # plt.savefig("disc1_gen_losses.png")
+        # plt.clf()
+        # plt.plot(disc1_human_losses)
+        # plt.savefig("disc1_human_losses.png")
+        # plt.clf()
         plt.plot(disc2_losses)
         plt.savefig("disc2_losses.png")
         plt.clf()
