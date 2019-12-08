@@ -3,6 +3,8 @@ import h5py
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import os
+import glob
+import imageio
 import random
 
 def encoder_layer(num_filters, apply_batchnorm=True,apply_dropout=False, dropout_prob=0.5, strides=2):
@@ -139,7 +141,7 @@ def load_dataset(num=4000, start=-1):
 def main():
     noise = tf.random.normal([1,256,256,3])
     batch_size = 8
-    test_x, test_y = load_dataset(num=100, start=0)
+    test_x, test_y = load_dataset(num=20, start=0)
     generator_model = Generator()
     # disc1_model = Discriminator1()
     disc2_model = Discriminator2()
@@ -161,11 +163,12 @@ def main():
     checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer, generator=generator_model, disc2_optimizer=disc2_optimizer, disc2=disc2_model)
     manager = tf.train.CheckpointManager(checkpoint, checkpoint_dir, max_to_keep=3)
     print("checkpoints: ", manager.checkpoints)
+    restoreCheckPointName = "./checkpoints_v6/cnn_v6-41"
     if manager.latest_checkpoint:
-        checkpoint.restore(manager.latest_checkpoint)
-        for i in range(20):
+        checkpoint.restore(restoreCheckPointName)
+        for i in range(10):
             # image_x, _ = load_dataset(num=1, start=i)
-            print("Restored from {}".format(manager.latest_checkpoint))
+            print("Restored from {}".format(restoreCheckPointName))
             output = generator_model(test_x[i:i+1], training=False)
             print("shape:",output.shape)
             # human_test_gen = np.squeeze(disc1_model(output, training=False))
@@ -183,18 +186,52 @@ def main():
             plt.axis('off')
             fig.axes.get_xaxis().set_visible(False)
             fig.axes.get_yaxis().set_visible(False)
-            plt.title("Human Doodle\nD_h o/p= "+str(np.round(human_test_human,2))+"\nD_m o/p= "+str(np.round(match_test_human, 2)))
+            plt.title("Human Doodle") #H_D o/p="+str(np.round(match_test_human, 2)))
             #plt.show()
             plt.subplot(1,3,3)
             fig = plt.imshow(output[0, :, :, :])
             plt.axis('off')
             fig.axes.get_xaxis().set_visible(False)
             fig.axes.get_yaxis().set_visible(False)
-            plt.title("Generator Output\nD_h o/p= "+str(np.round(human_test_gen,2))+"\nD_m o/p= "+str(np.round(match_test_gen, 2)))
+            plt.title("Generator Output") #\nH_D o/p= "+str(np.round(human_test_gen,2))+"\nD_m o/p= "+str(np.round(match_test_gen, 2)))
             plt.show()
-            #generator_model.save("Generator.h5")
+            generator_model.save("GeneratorHG.h5")
             #disc1_model.save("Discriminator_human.h5")
-            #disc2_model.save("Discriminator_match.h5")
+            disc2_model.save("DiscriminatorHD.h5")
+        
+        nSP = 2
+        SPtest_images = np.zeros((nSP,256,256,3),dtype='float32')
+        SPtest_sketches = np.zeros((nSP,256,256,3),dtype='float32')
+        SPtest_gens = np.zeros((nSP,256,256,3),dtype='float32')
+        
+        for i in range(nSP):
+            P_name = "./ReportImages/Combined/P-"+str(i+1)+".jpg"
+            D_name = "./ReportImages/Combined/D-"+str(i+1)+".png"
+            SPtest_images[i, :, :, :] = np.array(imageio.imread(P_name),dtype='float32')/255
+            SPtest_sketches[i, :, :, :] = np.array(imageio.imread(D_name),dtype='float32')/255
+            SPtest_gens[i, :, :, :] = generator_model(SPtest_images[i, :, :, :], training=False)
+            #d_img = D_img
+            
+            plt.subplot(1,3,1)
+            fig = plt.imshow(SPtest_images[i, :, :, :])
+            plt.axis('off')
+            fig.axes.get_xaxis().set_visible(False)
+            fig.axes.get_yaxis().set_visible(False)
+            plt.subplot(1,3,2)
+            fig = plt.imshow(SPtest_sketches[i, :, :, :])
+            plt.axis('off')
+            fig.axes.get_xaxis().set_visible(False)
+            fig.axes.get_yaxis().set_visible(False)
+            plt.title("Human Doodle") #H_D o/p="+str(np.round(match_test_human, 2)))
+            plt.subplot(1,3,3)
+            fig = plt.imshow(SPtest_gens[i, :, :, :])
+            plt.axis('off')
+            fig.axes.get_xaxis().set_visible(False)
+            fig.axes.get_yaxis().set_visible(False)
+            plt.title("Generator Output") #\nH_D o/p= "+str(np.round(human_test_gen,2))+"\nD_m o/p= "+str(np.round(match_test_gen, 2)))
+            plt.show()
+            
+            
         return
         
         # all_losses = np.loadtxt("losses_data")
