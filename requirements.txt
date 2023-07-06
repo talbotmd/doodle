@@ -3,6 +3,6 @@ h5py
 imageio
 numpy
 Pillow
-scipy==1.1
+scipy==1.10.0
 tensorflow-gpu
 matplotlib
